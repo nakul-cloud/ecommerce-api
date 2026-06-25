@@ -34,12 +34,12 @@ The goal: build a backend that I can revisit after a year and understand the arc
 - **Environment Configuration** — Secrets loaded from `.env`, never hardcoded
 - **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box
 - **Database Auto-setup** — Tables created automatically on first startup
-- **Request Timing Middleware** — Intercepts requests to log execution duration and adds custom header `X-Process-Time` to response
 
 ### Planned
 
 - Product Update operation
 - Order management with stock validation
+- Request timing middleware
 - JWT authentication and role-based access
 - Migration from raw SQL to SQLAlchemy + Alembic
 - Automated testing with pytest
@@ -118,36 +118,47 @@ curl -X POST http://127.0.0.1:8000/products \
 
 Every API request flows through these layers in order. Each layer has exactly one job.
 
-```mermaid
-flowchart TD
-    Client([Client: Browser / Postman / curl])
-    
-    subgraph FastAPI_App [FastAPI Application Framework]
-        timing_py[timing.py - Middleware]
-        products_py[products.py - Route Router]
-        product_schema_in[product_schema.py - Input Schema]
-        product_controller_py[product_controller.py - Controller]
-        handlers_py[handlers.py - Global Exception Handler]
-        product_schema_out[product_schema.py - Output Response]
-    end
-    
-    ecommerce_db[(ecommerce.db - SQLite DB)]
-    
-    Client -->|1. HTTP Request| timing_py
-    timing_py -->|2. Measures & forwards request| products_py
-    products_py -->|3. Matches URL to handler| product_schema_in
-    
-    product_schema_in -->|✓ Valid Input| product_controller_py
-    product_schema_in -.->|✗ Invalid: 422 Unprocessable Entity| Client
-    
-    product_controller_py -->|4. Reads / Writes| ecommerce_db
-    ecommerce_db -->|Returns raw records| product_controller_py
-    
-    product_controller_py -->|5. Prepares output| product_schema_out
-    product_controller_py -.->|✗ Raises custom exception| handlers_py
-    
-    handlers_py -->|Translates to HTTP Error| product_schema_out
-    product_schema_out -->|6. HTTP Response - Hides cost_price| Client
+```
+Client (Browser / Postman / curl)
+    │
+    ▼
+┌──────────────────────────────────────────────┐
+│  MIDDLEWARE — Intercepts every request        │
+│  (timing, logging, CORS — coming soon)        │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  ROUTE — Matches URL to handler function      │
+│  products.py: POST /products → create_new_..  │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  SCHEMA — Validates input (Pydantic)          │
+│  ProductCreate: name≥3 chars, price>0, etc.   │
+│  ✗ Invalid → 422 Unprocessable Entity         │
+│  ✓ Valid → continues                          │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  CONTROLLER — Business logic + DB operations  │
+│  create_product(): INSERT → commit → return   │
+│  ✗ Not found → ProductNotFoundException       │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  EXCEPTION HANDLER — Translates errors        │
+│  ProductNotFoundException → 404 JSON          │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  RESPONSE — Filtered through ProductResponse  │
+│  Hides cost_price, returns clean JSON         │
+└──────────────────────────────────────────────┘
 ```
 
 ### Design Decisions
@@ -218,7 +229,7 @@ ecommerce-api/
 │   │   ├── custom_exceptions.py  # ProductNotFoundException
 │   │   └── handlers.py           # Global exception → JSON response mapping
 │   ├── middleware/
-│   │   └── timing.py             # Request duration logging middleware
+│   │   └── timing.py             # Request duration logging (placeholder)
 │   └── utils/
 │       ├── constants.py          # App-wide constants (placeholder)
 │       └── helpers.py            # Reusable helper functions (placeholder)
@@ -250,7 +261,7 @@ ecommerce-api/
 |---|---|---|
 | **Phase 1** | Project structure, FastAPI setup, SQLite, Product CRUD, Schemas, Exceptions | **Done** |
 | **Phase 2** | Product Update, Order CRUD with stock deduction, Pagination | Planned |
-| **Phase 3** | Request timing middleware (Done), Input sanitization | In Progress |
+| **Phase 3** | Request timing middleware, Input sanitization | Planned |
 | **Phase 4** | SQLAlchemy ORM, Repository pattern, Alembic migrations | Planned |
 | **Phase 5** | JWT authentication, Role-based access, Rate limiting | Planned |
 | **Phase 6** | Automated testing with pytest, Test fixtures | Planned |
