@@ -119,69 +119,35 @@ curl -X POST http://127.0.0.1:8000/products \
 Every API request flows through these layers in order. Each layer has exactly one job.
 
 ```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#2b303c',
-    'primaryTextColor': '#ffffff',
-    'primaryBorderColor': '#4a5568',
-    'lineColor': '#a0aec0',
-    'secondaryColor': '#1a202c',
-    'tertiaryColor': '#2d3748'
-  }
-}}%%
 flowchart TD
-    Client([💻 Client: Browser / Postman / curl])
+    Client([Client: Browser / Postman / curl])
     
-    subgraph FastAPIApp [FastAPI Application Framework]
-        Middleware["🛡️ Middleware<br/><i>Intercepts all requests</i><br/>(e.g., Timing & Console Logging)"]
-        
-        Route["📍 Route Router<br/><i>Matches URL & Method to Handler</i><br/>(e.g., POST /products → create_new_product)"]
-        
-        Schema{"✔️ Pydantic Schema Validation<br/><i>Validates input formats & rules</i><br/>(e.g., name ≥ 3 chars, price > 0)"}
-        
-        Controller["⚙️ Controller<br/><i>Executes business logic & DB operations</i><br/>(e.g., create_product() → INSERT)"]
-        
-        ExcHandler["⚠️ Global Exception Handler<br/><i>Intercepts domain errors & formats responses</i>"]
-        
-        Response["📦 Response Serialization<br/><i>Filters outgoing database objects</i><br/>(e.g., ProductResponse hides cost_price)"]
+    subgraph FastAPI_App [FastAPI Application Framework]
+        timing_py[timing.py - Middleware]
+        products_py[products.py - Route Router]
+        product_schema_in[product_schema.py - Input Schema]
+        product_controller_py[product_controller.py - Controller]
+        handlers_py[handlers.py - Global Exception Handler]
+        product_schema_out[product_schema.py - Output Response]
     end
     
-    %% Request flow
-    Client -->|1. HTTP Request| Middleware
-    Middleware -->|2. Process Request| Route
-    Route -->|3. Route matched| Schema
+    ecommerce_db[(ecommerce.db - SQLite DB)]
     
-    %% Schema Validation Branching
-    Schema -->|✓ Valid input| Controller
-    Schema -.->|✗ Invalid: 422 Unprocessable Entity| Client
+    Client -->|1. HTTP Request| timing_py
+    timing_py -->|2. Measures & forwards request| products_py
+    products_py -->|3. Matches URL to handler| product_schema_in
     
-    %% Controller Flow & Errors
-    Controller -->|4. Returns raw data| Response
-    Controller -.->|✗ Raises custom exception<br/>e.g., ProductNotFoundException| ExcHandler
+    product_schema_in -->|✓ Valid Input| product_controller_py
+    product_schema_in -.->|✗ Invalid: 422 Unprocessable Entity| Client
     
-    %% Error translation & Output
-    ExcHandler -->|Translates to HTTP 404/400 JSON| Response
-    Response -->|5. HTTP Response - Clean JSON| Client
-
-    %% Styles and Colors
-    classDef client fill:#3182ce,stroke:#2b6cb0,color:#fff,stroke-width:2px;
-    classDef middleware fill:#4a5568,stroke:#2d3748,color:#fff,stroke-width:2px;
-    classDef route fill:#805ad5,stroke:#6b46c1,color:#fff,stroke-width:2px;
-    classDef schema fill:#d69e2e,stroke:#b7791f,color:#fff,stroke-width:2px;
-    classDef controller fill:#319795,stroke:#2c7a7b,color:#fff,stroke-width:2px;
-    classDef handler fill:#e53e3e,stroke:#c53030,color:#fff,stroke-width:2px;
-    classDef response fill:#38a169,stroke:#2f855a,color:#fff,stroke-width:2px;
-    classDef app fill:#f7fafc,stroke:#edf2f7,color:#2d3748,stroke-width:2px,stroke-dasharray: 5 5;
-
-    class Client client;
-    class Middleware middleware;
-    class Route route;
-    class Schema schema;
-    class Controller controller;
-    class ExcHandler handler;
-    class Response response;
-    class FastAPIApp app;
+    product_controller_py -->|4. Reads / Writes| ecommerce_db
+    ecommerce_db -->|Returns raw records| product_controller_py
+    
+    product_controller_py -->|5. Prepares output| product_schema_out
+    product_controller_py -.->|✗ Raises custom exception| handlers_py
+    
+    handlers_py -->|Translates to HTTP Error| product_schema_out
+    product_schema_out -->|6. HTTP Response - Hides cost_price| Client
 ```
 
 ### Design Decisions
