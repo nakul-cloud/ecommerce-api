@@ -4,6 +4,7 @@ from app.config.database import create_tables
 from app.config.settings import APP_NAME, APP_VERSION
 from app.routes.products import router as product_router
 from app.exceptions.handlers import register_exception_handlers
+from app.middleware.timing import register_middleware
 
 
 app = FastAPI(
@@ -12,6 +13,8 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+register_middleware(app)
+
 
 @app.on_event("startup")
 def startup():

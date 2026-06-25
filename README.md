@@ -1,276 +1,89 @@
+<div align="center">
+
 # E-Commerce API
 
-A production-quality REST API for an e-commerce platform, built with **FastAPI** and **SQLite**.
+**A production-grade REST API built with FastAPI — designed for learning professional backend architecture**
 
-This project is designed as a learning path for professional backend engineering. Every architectural decision here mirrors what you'd see in real companies — just scaled down so you can understand *why* things are built this way before dealing with the complexity of large systems.
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://sqlite.org)
 
----
+[Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [API Reference](#api-reference) • [Project Structure](#project-structure) • [What I Learned](#what-i-learned)
 
-## Why This Project Exists
-
-Most tutorials teach you FastAPI syntax. This project teaches you **backend architecture**.
-
-By the end of this project, you will understand:
-
-- How to structure a real backend project (not just a single `main.py` file)
-- Why we separate routes, controllers, schemas, and config
-- How request validation works before your code even runs
-- How to handle errors professionally instead of crashing the server
-- How middleware intercepts every request
-- How to evolve from raw SQL to ORM to production patterns
+</div>
 
 ---
 
-## Features Implemented
+## Overview
 
-### Phase 1 — Foundation (Current)
+This is not a tutorial project with everything crammed into one file. This is a **properly architected** FastAPI backend that mirrors how production APIs are built at real companies — just scaled down so every design decision is visible and understandable.
 
-- [x] Project structure following industry conventions
-- [x] FastAPI app with versioned configuration
-- [x] SQLite database with auto-creating tables on startup
-- [x] Environment-based configuration (`.env` file)
-- [x] Pydantic schemas with validation rules
-- [x] Product CRUD operations (Create, List, Retrieve, Delete)
-- [x] Separate routes, controllers, and schemas
-- [x] Order schema definitions
-- [x] Custom exception handling
+The goal: build a backend that I can revisit after a year and understand the architecture within 15 minutes by reading the code and documentation alone.
 
-### Coming Next
+> [!NOTE]
+> This project is actively developed as a phased learning journey. Each phase introduces new backend engineering concepts while keeping the codebase clean and well-documented.
 
-- [ ] Product Update CRUD operation
-- [ ] Order creation with stock validation
-- [ ] Request timing middleware
-- [ ] Utility functions and constants
-- [ ] Automated tests
+## Features
 
+### Implemented
 
+- **Layered Architecture** — Routes, Controllers, Schemas, and Config cleanly separated
+- **Product CRUD** — Create, List, Retrieve, and Delete operations
+- **Pydantic Validation** — Strict request/response schemas with field-level constraints
+- **Custom Exception Handling** — Domain exceptions with global handlers returning clean JSON errors
+- **Environment Configuration** — Secrets loaded from `.env`, never hardcoded
+- **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box
+- **Database Auto-setup** — Tables created automatically on first startup
 
+### Planned
 
----
+- Product Update operation
+- Order management with stock validation
+- Request timing middleware
+- JWT authentication and role-based access
+- Migration from raw SQL to SQLAlchemy + Alembic
+- Automated testing with pytest
+- AI/RAG integration for product search
 
-## Architecture
-
-### The Big Picture
-
-This project follows a **layered architecture**. Each layer has one job, and layers only talk to the layer directly below them.
-
-```
-┌─────────────────────────────────────────┐
-│              CLIENT (Browser / Postman)  │
-└──────────────────┬──────────────────────┘
-                   │ HTTP Request
-                   ▼
-┌─────────────────────────────────────────┐
-│              MIDDLEWARE                  │
-│  (timing.py — logs request duration)    │
-└──────────────────┬──────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────┐
-│              ROUTES                     │
-│  (products.py, orders.py)               │
-│  Defines endpoints, delegates work      │
-└──────────────────┬──────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────┐
-│              CONTROLLERS                │
-│  (product_controller.py)                │
-│  Business logic, DB operations          │
-└──────────────────┬──────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────┐
-│              DATABASE                   │
-│  (SQLite via database.py)               │
-└──────────────────┬──────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────┐
-│              RESPONSE                   │
-│  (Filtered through ProductResponse)     │
-└─────────────────────────────────────────┘
-```
-
-### Request Lifecycle — What Happens When You Hit `POST /products`
-
-```
-1. Client sends POST /products with JSON body
-
-2. FastAPI receives the request
-   ↓
-3. Middleware runs (timing, logging — not yet implemented)
-   ↓
-4. Route matched → products.py → create_new_product()
-   ↓
-5. Pydantic validates the request body using ProductCreate schema
-   → If invalid: 422 Unprocessable Entity returned immediately
-   → If valid: continues
-   ↓
-6. Route calls controller → product_controller.create_product()
-   ↓
-7. Controller opens DB connection, executes INSERT query
-   ↓
-8. Controller builds ProductResponse (hides cost_price from client)
-   ↓
-9. FastAPI serializes response to JSON, sends 201 Created
-```
-
----
-
-## Project Structure
-
-```
-ecommerce-api/
-│
-├── app/                          # All application code lives here
-│   ├── __init__.py               # Makes 'app' a Python package
-│   ├── main.py                   # FastAPI app creation and startup
-│   │
-│   ├── config/                   # Configuration and database setup
-│   │   ├── settings.py           # Environment variables (app name, DB path, API keys)
-│   │   └── database.py           # SQLite connection + table creation
-│   │
-│   ├── routes/                   # API endpoint definitions
-│   │   ├── products.py           # /products endpoints
-│   │   └── orders.py             # /orders endpoints (placeholder)
-│   │
-│   ├── controllers/              # Business logic layer
-│   │   ├── product_controller.py # Product CRUD operations
-│   │   └── order_controller.py   # Order operations (placeholder)
-│   │
-│   ├── schemas/                  # Request/response validation models
-│   │   ├── product_schema.py     # ProductCreate, ProductUpdate, ProductResponse
-│   │   └── order_schema.py       # OrderItem, OrderCreate, OrderResponse
-│   │
-│   ├── exceptions/               # Error handling (placeholder)
-│   │   ├── custom_exceptions.py  # Custom exception classes
-│   │   └── handlers.py           # Global exception handlers
-│   │
-│   ├── middleware/               # Request/response interceptors (placeholder)
-│   │   └── timing.py             # Request duration logging
-│   │
-│   └── utils/                    # Shared utilities (placeholder)
-│       ├── constants.py          # App-wide constants
-│       └── helpers.py            # Reusable helper functions
-│
-├── data/                         # SQLite database storage
-│   └── ecommerce.db              # Auto-created on first startup
-│
-├── tests/                        # Test files (coming soon)
-│
-├── .env                          # Secret configuration (never commit this)
-├── .gitignore                    # Files Git should ignore
-├── requirements.txt              # Python dependencies
-└── README.md                     # You are here
-```
-
----
-
-## Tech Stack
-
-| Technology | Why We Use It |
-|---|---|
-| **Python 3.11+** | Industry standard for backend + AI/ML work |
-| **FastAPI** | Modern, fast, auto-generates docs, built-in validation |
-| **Uvicorn** | ASGI server that runs FastAPI apps |
-| **SQLite** | Zero-config database, perfect for learning (swap to PostgreSQL later) |
-| **Pydantic** | Data validation — catches bad input before it reaches your code |
-| **python-dotenv** | Loads secrets from `.env` file so they never touch your code |
-
----
-
-## Installation
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.11 or higher
 - Git
 
-### Steps
+### Setup
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/nakul-cloud/ecommerce-api.git
 cd ecommerce-api
 
-# 2. Create a virtual environment
+# Create and activate virtual environment
 python -m venv .venv
 
-# 3. Activate it
-# Windows (PowerShell):
+# Windows (PowerShell)
 .venv\Scripts\Activate.ps1
-# Windows (CMD):
-.venv\Scripts\activate.bat
-# macOS/Linux:
+
+# macOS / Linux
 source .venv/bin/activate
 
-# 4. Install dependencies
+# Install dependencies
 pip install fastapi uvicorn python-dotenv
+```
 
-# 5. Create a .env file (optional — defaults are built in)
-# APP_NAME=E-Commerce API
-# APP_VERSION=1.0.0
-# DATABASE_PATH=data/ecommerce.db
-# ADMIN_API_KEY=your-secret-key
+### Run
 
-# 6. Run the server
+```bash
 uvicorn app.main:app --reload
 ```
 
----
+The API starts at **http://127.0.0.1:8000**
 
-## Running the Project
-
-```bash
-# Start development server with auto-reload
-uvicorn app.main:app --reload
-```
-
-The server starts at: **http://127.0.0.1:8000**
-
----
-
-## Swagger Documentation
-
-FastAPI auto-generates interactive API docs. Once the server is running:
-
-| URL | What It Is |
-|---|---|
-| http://127.0.0.1:8000/docs | **Swagger UI** — interactive, try endpoints directly |
-| http://127.0.0.1:8000/redoc | **ReDoc** — cleaner read-only documentation |
-
----
-
-## API Endpoints
-
-### Health Check
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/` | Returns a welcome message confirming the API is running |
-
-### Products
-
-| Method | Endpoint | Description | Status |
-|---|---|---|---|
-| `POST` | `/products` | Create a new product | Implemented |
-| `GET` | `/products` | List all products | Implemented |
-| `GET` | `/products/{product_id}` | Get a single product | Implemented |
-| `PUT` | `/products/{product_id}` | Update a product | Coming soon |
-| `DELETE` | `/products/{product_id}` | Delete a product | Implemented |
-
-### Orders
-
-| Method | Endpoint | Description | Status |
-|---|---|---|---|
-| `POST` | `/orders` | Create a new order | Coming soon |
-| `GET` | `/orders` | List all orders | Coming soon |
-| `GET` | `/orders/{id}` | Get a single order | Coming soon |
-
-### Example — Create a Product
+### Try it
 
 ```bash
+# Create a product
 curl -X POST http://127.0.0.1:8000/products \
   -H "Content-Type: application/json" \
   -d '{
@@ -296,111 +109,196 @@ curl -X POST http://127.0.0.1:8000/products \
 }
 ```
 
-> Notice: `cost_price` is **not** in the response. The `ProductResponse` schema intentionally hides internal pricing from API consumers. This is a real-world pattern — you never expose your margins to customers.
+> [!TIP]
+> Notice that `cost_price` is **not** in the response. The `ProductResponse` schema intentionally hides internal pricing from API consumers. This is a real-world pattern — you never expose your margins to customers.
 
----
+## Architecture
 
-## Project Phases — Roadmap
+### Request Lifecycle
 
-### Phase 1 — Foundation (Current)
-- Project structure
-- FastAPI setup
-- SQLite database
-- Pydantic schemas
-- Product creation endpoint
+Every API request flows through these layers in order. Each layer has exactly one job.
 
-### Phase 2 — Complete CRUD
-- Full Product CRUD (GET, PUT, DELETE)
-- Order creation with stock deduction
-- Pagination and filtering
+```
+Client (Browser / Postman / curl)
+    │
+    ▼
+┌──────────────────────────────────────────────┐
+│  MIDDLEWARE — Intercepts every request        │
+│  (timing, logging, CORS — coming soon)        │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  ROUTE — Matches URL to handler function      │
+│  products.py: POST /products → create_new_..  │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  SCHEMA — Validates input (Pydantic)          │
+│  ProductCreate: name≥3 chars, price>0, etc.   │
+│  ✗ Invalid → 422 Unprocessable Entity         │
+│  ✓ Valid → continues                          │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  CONTROLLER — Business logic + DB operations  │
+│  create_product(): INSERT → commit → return   │
+│  ✗ Not found → ProductNotFoundException       │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  EXCEPTION HANDLER — Translates errors        │
+│  ProductNotFoundException → 404 JSON          │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────┐
+│  RESPONSE — Filtered through ProductResponse  │
+│  Hides cost_price, returns clean JSON         │
+└──────────────────────────────────────────────┘
+```
 
-### Phase 3 — Error Handling & Middleware
-- Custom exceptions (ProductNotFound, OutOfStock)
-- Global exception handlers
-- Request timing middleware
-- Input sanitization
+### Design Decisions
 
-### Phase 4 — Database Evolution
-- Migrate from raw `sqlite3` to SQLAlchemy ORM
-- Repository pattern (separate DB queries from business logic)
-- Alembic for database migrations
+| Decision | Why |
+|---|---|
+| **Separate routes from controllers** | Routes define *what* endpoints exist. Controllers define *what happens*. This makes business logic reusable and testable without HTTP. |
+| **Input schema ≠ Response schema** | `ProductCreate` accepts `cost_price`. `ProductResponse` hides it. The API never exposes internal data. |
+| **Custom exceptions over HTTP exceptions** | Controllers raise `ProductNotFoundException` — they don't know about HTTP status codes. The global handler translates it to `404`. Clean separation. |
+| **`CREATE TABLE IF NOT EXISTS`** | Startup runs every time. Without `IF NOT EXISTS`, the second startup would crash. |
+| **`.env` for configuration** | Same code runs in dev, staging, and production. Only the `.env` file changes. |
 
-### Phase 5 — Authentication & Security
-- JWT authentication
-- Role-based access control (admin vs customer)
-- Rate limiting
-- CORS configuration
+## API Reference
 
-### Phase 6 — Testing
-- Unit tests with pytest
-- Integration tests for API endpoints
-- Test fixtures and factories
+### Interactive Documentation
 
-### Phase 7 — AI/RAG Integration
-- Product search using embeddings
-- Natural language order queries
-- RAG-powered customer support
+| URL | Description |
+|---|---|
+| http://127.0.0.1:8000/docs | **Swagger UI** — interactive, test endpoints directly |
+| http://127.0.0.1:8000/redoc | **ReDoc** — clean read-only documentation |
 
----
+### Endpoints
 
-## Things I Learned Building This
+| Method | Endpoint | Description | Status Code |
+|---|---|---|---|
+| `GET` | `/` | Health check | `200` |
+| `POST` | `/products` | Create a new product | `201` |
+| `GET` | `/products` | List all products | `200` |
+| `GET` | `/products/{product_id}` | Retrieve a single product | `200` |
+| `DELETE` | `/products/{product_id}` | Delete a product | `200` |
 
-1. **`CREATE TABLE IF NOT EXISTS` does not update existing tables** — If you change your schema in `database.py` but the table already exists in `ecommerce.db`, SQLite silently ignores the new columns. You have to drop and recreate the table (or use migrations in production).
+### Error Responses
 
-2. **Pydantic validates before your code runs** — If someone sends `price: -100`, FastAPI returns a `422` error before `create_product()` is ever called. Your controller never sees bad data.
+When something goes wrong, the API returns structured JSON errors:
 
-3. **Response schemas hide internal fields** — `ProductCreate` accepts `cost_price`, but `ProductResponse` does not include it. This means API consumers never see your cost data. Same pattern Netflix uses to hide internal metadata.
+```json
+{
+  "status": "error",
+  "message": "Product with ID 99 not found"
+}
+```
 
-4. **`__init__.py` makes folders importable** — Without it, `from app.config.settings import ...` would fail. Python needs this file to treat a directory as a package.
+| Status Code | When |
+|---|---|
+| `404` | Product not found |
+| `422` | Validation failed (missing fields, invalid types, constraints violated) |
+| `500` | Unexpected server error |
 
-5. **`.env` files should never be committed** — Secrets like `ADMIN_API_KEY` belong in `.env`, which is listed in `.gitignore`. In production, these come from environment variables or secret managers.
+## Project Structure
 
-6. **Uvicorn's `--reload` flag watches for file changes** — Great for development, never use in production. It restarts the server every time you save a file.
+```
+ecommerce-api/
+├── app/                          # Application package
+│   ├── main.py                   # FastAPI app, startup, router wiring
+│   ├── config/
+│   │   ├── settings.py           # Environment variables (.env loader)
+│   │   └── database.py           # SQLite connection + table creation
+│   ├── routes/
+│   │   ├── products.py           # /products endpoint definitions
+│   │   └── orders.py             # /orders (placeholder)
+│   ├── controllers/
+│   │   ├── product_controller.py # Product business logic + DB operations
+│   │   └── order_controller.py   # Order logic (placeholder)
+│   ├── schemas/
+│   │   ├── product_schema.py     # ProductCreate, ProductUpdate, ProductResponse
+│   │   └── order_schema.py       # OrderItem, OrderCreate, OrderResponse
+│   ├── exceptions/
+│   │   ├── custom_exceptions.py  # ProductNotFoundException
+│   │   └── handlers.py           # Global exception → JSON response mapping
+│   ├── middleware/
+│   │   └── timing.py             # Request duration logging (placeholder)
+│   └── utils/
+│       ├── constants.py          # App-wide constants (placeholder)
+│       └── helpers.py            # Reusable helper functions (placeholder)
+├── data/
+│   └── ecommerce.db              # SQLite database (auto-created)
+├── tests/                        # Test suite (coming soon)
+├── .env                          # Environment secrets (not committed)
+├── .gitignore                    # Git ignore rules
+└── requirements.txt              # Python dependencies
+```
 
----
+> [!IMPORTANT]
+> Every folder contains its own `README.md` with detailed explanations of purpose, responsibilities, request flow, best practices, and interview questions. Navigate into any folder to learn more.
 
-## Common Interview Questions Based on This Project
+## Tech Stack
 
-### Architecture
+| Technology | Role | Why This Choice |
+|---|---|---|
+| **Python 3.11+** | Language | Industry standard for backend + AI/ML |
+| **FastAPI** | Web framework | Auto-validation, auto-docs, async-ready, type hints |
+| **Uvicorn** | ASGI server | Runs FastAPI applications |
+| **SQLite** | Database | Zero-config, file-based — perfect for learning, swap to PostgreSQL later |
+| **Pydantic** | Validation | Catches bad input before your code runs |
+| **python-dotenv** | Configuration | Loads secrets from `.env` so they never touch source code |
 
-1. **Why separate routes from controllers?**
-   Routes define *what* endpoints exist. Controllers define *what happens* when those endpoints are hit. This separation means you can reuse controller logic across multiple routes, test business logic without HTTP, and keep each file small and focused.
+## Roadmap
 
-2. **What is the difference between a schema and a model?**
-   In this project, schemas (Pydantic) validate API input/output. Models (database tables) define how data is stored. They often look similar but serve different purposes. A schema might hide `cost_price` from the response while the model stores it.
+| Phase | Focus | Status |
+|---|---|---|
+| **Phase 1** | Project structure, FastAPI setup, SQLite, Product CRUD, Schemas, Exceptions | **Done** |
+| **Phase 2** | Product Update, Order CRUD with stock deduction, Pagination | Planned |
+| **Phase 3** | Request timing middleware, Input sanitization | Planned |
+| **Phase 4** | SQLAlchemy ORM, Repository pattern, Alembic migrations | Planned |
+| **Phase 5** | JWT authentication, Role-based access, Rate limiting | Planned |
+| **Phase 6** | Automated testing with pytest, Test fixtures | Planned |
+| **Phase 7** | AI/RAG integration — product search with embeddings | Planned |
 
-3. **Why use environment variables instead of hardcoding config?**
-   Because the same code runs in development, staging, and production. Each environment has different database paths, API keys, and settings. Environment variables let you change behavior without changing code.
+## What I Learned
 
-### FastAPI Specific
+Building this project taught me patterns that tutorials rarely cover:
 
-4. **What does `response_model` do in a route decorator?**
-   It tells FastAPI which schema to use when serializing the response. FastAPI will strip any fields not in the response model, validate the output, and document it in Swagger automatically.
+1. **`CREATE TABLE IF NOT EXISTS` does not update existing tables.** If you add a column to your schema definition but the table already exists in SQLite, the change is silently ignored. You must drop and recreate (or use migrations in production).
 
-5. **What happens if Pydantic validation fails?**
-   FastAPI catches the `ValidationError` and returns a `422 Unprocessable Entity` with detailed error messages showing exactly which fields failed and why.
+2. **Pydantic validates before your code runs.** If someone sends `price: -100`, FastAPI returns `422` before `create_product()` is ever called. Your business logic never sees bad data.
 
-6. **What is `APIRouter` and why use it?**
-   `APIRouter` lets you group related endpoints in separate files. Without it, every endpoint would be in `main.py`. With it, products have their own file, orders have their own file, and `main.py` just wires them together.
+3. **Response schemas are security filters.** `ProductCreate` accepts `cost_price`, but `ProductResponse` excludes it. API consumers never see your cost data.
 
-### Database
+4. **Controllers should not know about HTTP.** A controller raises `ProductNotFoundException`. It has no idea that this becomes a `404` response. The exception handler does that translation. This is real separation of concerns.
 
-7. **Why `CREATE TABLE IF NOT EXISTS` instead of just `CREATE TABLE`?**
-   Because the startup function runs every time the app starts. Without `IF NOT EXISTS`, the second startup would crash with "table already exists".
+5. **Always close database connections before raising exceptions.** Forgetting `conn.close()` before `raise` leaks connections. SQLite has limited concurrency — leaked connections cause the app to hang.
 
-8. **What is `cursor.lastrowid`?**
-   After an INSERT, SQLite assigns an auto-incremented ID to the new row. `lastrowid` gives you that ID so you can return it in the response without making another query.
+6. **`__init__.py` makes folders importable.** Without it, `from app.config.settings import ...` throws `ModuleNotFoundError`. It looks empty but it's essential.
 
-9. **Why close the database connection after each operation?**
-   SQLite has limited concurrent connections. If you open connections without closing them, you'll eventually run out and your app will hang. In production with PostgreSQL, you'd use connection pooling instead.
+## Troubleshooting
 
-### Security
+### `sqlite3.OperationalError: table has no column named X`
 
-10. **Why is `cost_price` in `ProductCreate` but not in `ProductResponse`?**
-    Because `cost_price` is internal business data. Exposing it would reveal your profit margins. The response schema acts as a security filter — only fields you explicitly include are sent to the client.
+The table was created with an older schema. `CREATE TABLE IF NOT EXISTS` won't update it.
 
----
+**Fix:** Delete `data/ecommerce.db` and restart the server. Tables will be recreated with the current schema.
 
-## License
+### `ModuleNotFoundError: No module named 'dotenv'`
 
-This project is for learning purposes.
+Dependencies are not installed in your virtual environment.
+
+**Fix:** Activate your `.venv` and run `pip install python-dotenv`.
+
+### `UnicodeEncodeError` on Windows terminal
+
+Windows console may not support Unicode characters (like emojis) in print statements.
+
+**Fix:** Avoid emoji characters in `print()` statements, or set `PYTHONIOENCODING=utf-8`.

@@ -1,93 +1,50 @@
-# `tests/` — Automated Testing Suite
+# `tests/` — Automated Test Suite
 
-This folder holds unit and integration tests to verify application correctness automatically.
+> Automated tests to verify API correctness. Currently a placeholder — will be implemented in Phase 6.
 
----
-
-## 1. Purpose
-
-> Why do we have a tests folder?
-
-To guarantee code quality and stability:
-- **Prevent regressions**: Ensure that new features or refactors don't break existing functionality.
-- **Support automatic testing**: Enable running test runners like `pytest` to validate routes, schemas, and controllers before deployment.
-
----
-
-## 2. Responsibilities
-
-### What belongs inside `tests/`
-
-- Unit tests targeting schemas and helper functions.
-- Integration tests targeting FastAPI routes and controller behaviors.
-- Test configurations (`conftest.py`) and mock database fixtures.
-
-### What does NOT belong inside `tests/`
-
-- Actual application production code or routes.
-
----
-
-## 3. Request Flow
-
-Tests bypass the live client route, simulating API requests locally:
+## Planned Structure
 
 ```
-[Pytest Runner] ──► Test Client ──► Routes ──► Controllers ──► Test DB
+tests/
+├── test_products.py      # Product endpoint integration tests
+├── test_orders.py        # Order endpoint integration tests
+├── test_schemas.py       # Schema validation unit tests
+└── conftest.py           # Shared fixtures (test DB, test client)
 ```
 
----
+## How Testing Will Work
 
-## 4. Beginner Explanation
+Tests will use FastAPI's `TestClient` to simulate HTTP requests without running the server:
 
-"If I forget this after six months..."
+```python
+from fastapi.testclient import TestClient
+from app.main import app
 
-This is the quality control inspection room. Before shipping code changes to real customers, we run test scripts in this folder to make sure products can still be created, orders can be made, and constraints aren't broken.
+client = TestClient(app)
 
----
+def test_create_product():
+    response = client.post("/products", json={
+        "name": "Test Product",
+        "description": "A product for testing",
+        "category": "Testing",
+        "price": 10.00,
+        "stock_quantity": 5,
+        "cost_price": 5.00
+    })
+    assert response.status_code == 201
+    assert response.json()["name"] == "Test Product"
+```
 
-## 5. Real-World Analogy
+> [!NOTE]
+> Tests will use a separate temporary database to avoid corrupting development data.
 
-- **Tests** = The safety inspector testing products before they leave the factory.
+## Real-World Analogy
 
----
+Tests = **Quality inspection before shipping**. Before any code change goes live, the test suite runs to make sure nothing broke.
 
-## 6. Best Practices
+## 30-Second Revision
 
-### Do
-
-- Use a separate temporary database for tests so you don't overwrite your dev data.
-- Run tests regularly before committing new features.
-- Keep tests isolated so they don't depend on each other.
-
-### Don't
-
-- Never run tests directly against your production or development database file.
-
----
-
-## 7. Interview Questions
-
-1. **Why use a separate database for testing?**
-   To avoid corrupting or wiping out development or production records, and to ensure each test starts with a clean database state.
-2. **What is Pytest?**
-   A popular Python testing framework that makes it easy to write simple, readable, and scalable unit and integration tests.
-
----
-
-## 8. Learning Notes
-
-### Current Phase (Phase 1)
-- Empty folder ready for test cases.
-
-### Future Evolution
-- **Phase 6**: Write integration tests using FastAPI's `TestClient` and mock database fixtures.
-
----
-
-## 9. Quick Revision
-
-- `tests/` contains validation scripts.
-- Pytest is the main test runner.
-- Verifies endpoints and business logic without manual testing.
-- Uses independent test database connections.
+- `tests/` will contain pytest-based automated tests
+- Uses FastAPI's `TestClient` for integration tests without a running server
+- Separate test database to keep development data safe
+- Coming in Phase 6 of the roadmap
