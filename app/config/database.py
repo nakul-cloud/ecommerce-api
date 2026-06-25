@@ -71,4 +71,4 @@ def create_tables():
     conn.commit()
     conn.close()
 
-    print("✅ Database tables created successfully.")
+    print("Database tables created successfully.")
