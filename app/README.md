@@ -241,8 +241,8 @@ app/
 ### Future Evolution
 
 ```
-Phase 2 → Add more routes and controllers for full CRUD
-Phase 3 → exceptions/ and middleware/ get populated
+Phase 2 → Add Product updates and Orders features
+Phase 3 → middleware/ gets populated
 Phase 4 → controllers/ stop touching DB directly (Repository Pattern)
 Phase 5 → Authentication added to routes
 Phase 6 → tests/ mirrors app/ structure

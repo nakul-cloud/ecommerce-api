@@ -33,15 +33,17 @@ By the end of this project, you will understand:
 - [x] Product CRUD operations (Create, List, Retrieve, Delete)
 - [x] Separate routes, controllers, and schemas
 - [x] Order schema definitions
+- [x] Custom exception handling
 
 ### Coming Next
 
 - [ ] Product Update CRUD operation
 - [ ] Order creation with stock validation
-- [ ] Custom exception handling
 - [ ] Request timing middleware
 - [ ] Utility functions and constants
 - [ ] Automated tests
+
+
 
 
 ---
