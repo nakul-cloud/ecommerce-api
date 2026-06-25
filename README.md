@@ -34,12 +34,12 @@ The goal: build a backend that I can revisit after a year and understand the arc
 - **Environment Configuration** — Secrets loaded from `.env`, never hardcoded
 - **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box
 - **Database Auto-setup** — Tables created automatically on first startup
+- **Request Timing Middleware** — Intercepts requests to log execution duration and adds custom header `X-Process-Time` to response
 
 ### Planned
 
 - Product Update operation
 - Order management with stock validation
-- Request timing middleware
 - JWT authentication and role-based access
 - Migration from raw SQL to SQLAlchemy + Alembic
 - Automated testing with pytest
@@ -118,47 +118,70 @@ curl -X POST http://127.0.0.1:8000/products \
 
 Every API request flows through these layers in order. Each layer has exactly one job.
 
-```
-Client (Browser / Postman / curl)
-    │
-    ▼
-┌──────────────────────────────────────────────┐
-│  MIDDLEWARE — Intercepts every request        │
-│  (timing, logging, CORS — coming soon)        │
-└──────────────────┬───────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────┐
-│  ROUTE — Matches URL to handler function      │
-│  products.py: POST /products → create_new_..  │
-└──────────────────┬───────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────┐
-│  SCHEMA — Validates input (Pydantic)          │
-│  ProductCreate: name≥3 chars, price>0, etc.   │
-│  ✗ Invalid → 422 Unprocessable Entity         │
-│  ✓ Valid → continues                          │
-└──────────────────┬───────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────┐
-│  CONTROLLER — Business logic + DB operations  │
-│  create_product(): INSERT → commit → return   │
-│  ✗ Not found → ProductNotFoundException       │
-└──────────────────┬───────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────┐
-│  EXCEPTION HANDLER — Translates errors        │
-│  ProductNotFoundException → 404 JSON          │
-└──────────────────┬───────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────┐
-│  RESPONSE — Filtered through ProductResponse  │
-│  Hides cost_price, returns clean JSON         │
-└──────────────────────────────────────────────┘
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#2b303c',
+    'primaryTextColor': '#ffffff',
+    'primaryBorderColor': '#4a5568',
+    'lineColor': '#a0aec0',
+    'secondaryColor': '#1a202c',
+    'tertiaryColor': '#2d3748'
+  }
+}}%%
+flowchart TD
+    Client([💻 Client: Browser / Postman / curl])
+    
+    subgraph FastAPI App [FastAPI Application Framework]
+        Middleware["🛡️ Middleware<br/><i>Intercepts all requests</i><br/>(e.g., Timing & Console Logging)"]
+        
+        Route["📍 Route Router<br/><i>Matches URL & Method to Handler</i><br/>(e.g., POST /products → create_new_product)"]
+        
+        Schema{"✔️ Pydantic Schema Validation<br/><i>Validates input formats & rules</i><br/>(e.g., name ≥ 3 chars, price > 0)"}
+        
+        Controller["⚙️ Controller<br/><i>Executes business logic & DB operations</i><br/>(e.g., create_product() → INSERT)"]
+        
+        ExcHandler["⚠️ Global Exception Handler<br/><i>Intercepts domain errors & formats responses</i>"]
+        
+        Response["📦 Response Serialization<br/><i>Filters outgoing database objects</i><br/>(e.g., ProductResponse hides cost_price)"]
+    end
+    
+    %% Request flow
+    Client -->|1. HTTP Request| Middleware
+    Middleware -->|2. Process Request| Route
+    Route -->|3. Route matched| Schema
+    
+    %% Schema Validation Branching
+    Schema -->|✓ Valid input| Controller
+    Schema -.->|✗ Invalid: 422 Unprocessable Entity| Client
+    
+    %% Controller Flow & Errors
+    Controller -->|4. Returns raw data| Response
+    Controller -.->|✗ Raises custom exception<br/>e.g., ProductNotFoundException| ExcHandler
+    
+    %% Error translation & Output
+    ExcHandler -->|Translates to HTTP 404/400 JSON| Response
+    Response -->|5. HTTP Response (Clean JSON)| Client
+
+    %% Styles and Colors
+    classDef client fill:#3182ce,stroke:#2b6cb0,color:#fff,stroke-width:2px;
+    classDef middleware fill:#4a5568,stroke:#2d3748,color:#fff,stroke-width:2px;
+    classDef route fill:#805ad5,stroke:#6b46c1,color:#fff,stroke-width:2px;
+    classDef schema fill:#d69e2e,stroke:#b7791f,color:#fff,stroke-width:2px;
+    classDef controller fill:#319795,stroke:#2c7a7b,color:#fff,stroke-width:2px;
+    classDef handler fill:#e53e3e,stroke:#c53030,color:#fff,stroke-width:2px;
+    classDef response fill:#38a169,stroke:#2f855a,color:#fff,stroke-width:2px;
+    classDef app fill:#f7fafc,stroke:#edf2f7,color:#2d3748,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class Client client;
+    class Middleware middleware;
+    class Route route;
+    class Schema schema;
+    class Controller controller;
+    class ExcHandler handler;
+    class Response response;
+    class FastAPI App app;
 ```
 
 ### Design Decisions
@@ -229,7 +252,7 @@ ecommerce-api/
 │   │   ├── custom_exceptions.py  # ProductNotFoundException
 │   │   └── handlers.py           # Global exception → JSON response mapping
 │   ├── middleware/
-│   │   └── timing.py             # Request duration logging (placeholder)
+│   │   └── timing.py             # Request duration logging middleware
 │   └── utils/
 │       ├── constants.py          # App-wide constants (placeholder)
 │       └── helpers.py            # Reusable helper functions (placeholder)
@@ -261,7 +284,7 @@ ecommerce-api/
 |---|---|---|
 | **Phase 1** | Project structure, FastAPI setup, SQLite, Product CRUD, Schemas, Exceptions | **Done** |
 | **Phase 2** | Product Update, Order CRUD with stock deduction, Pagination | Planned |
-| **Phase 3** | Request timing middleware, Input sanitization | Planned |
+| **Phase 3** | Request timing middleware (Done), Input sanitization | In Progress |
 | **Phase 4** | SQLAlchemy ORM, Repository pattern, Alembic migrations | Planned |
 | **Phase 5** | JWT authentication, Role-based access, Rate limiting | Planned |
 | **Phase 6** | Automated testing with pytest, Test fixtures | Planned |
