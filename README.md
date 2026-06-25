@@ -162,7 +162,7 @@ flowchart TD
     
     %% Error translation & Output
     ExcHandler -->|Translates to HTTP 404/400 JSON| Response
-    Response -->|5. HTTP Response (Clean JSON)| Client
+    Response -->|5. HTTP Response - Clean JSON| Client
 
     %% Styles and Colors
     classDef client fill:#3182ce,stroke:#2b6cb0,color:#fff,stroke-width:2px;
