@@ -133,7 +133,7 @@ Every API request flows through these layers in order. Each layer has exactly on
 flowchart TD
     Client([💻 Client: Browser / Postman / curl])
     
-    subgraph FastAPI App [FastAPI Application Framework]
+    subgraph FastAPIApp [FastAPI Application Framework]
         Middleware["🛡️ Middleware<br/><i>Intercepts all requests</i><br/>(e.g., Timing & Console Logging)"]
         
         Route["📍 Route Router<br/><i>Matches URL & Method to Handler</i><br/>(e.g., POST /products → create_new_product)"]
@@ -181,7 +181,7 @@ flowchart TD
     class Controller controller;
     class ExcHandler handler;
     class Response response;
-    class FastAPI App app;
+    class FastAPIApp app;
 ```
 
 ### Design Decisions
