@@ -1,5 +1,4 @@
-from multiprocessing.sharedctypes import Value
-from check_db import cursor
+from app.exceptions.custom_exceptions import ProductNotFoundException
 from typing import List
 from app.config.database import get_db_connection
 from app.schemas.product_schema import(
@@ -130,7 +129,7 @@ def get_product_by_id(product_id: int) -> ProductResponse:
     conn.close()
 
     if row is None:
-        raise ValueError("Product not found")
+        raise ProductNotFoundException(product_id)
 
     return ProductResponse(
         id=row["id"],
@@ -164,7 +163,7 @@ def delete_product(product_id:int) -> dict:
 
     if cursor.rowcount == 0:
         conn.close()
-        raise ValueError("Product not found")
+        raise ProductNotFoundException(product_id)
 
     conn.close()
 
