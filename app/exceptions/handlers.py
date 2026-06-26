@@ -4,6 +4,7 @@ from app.exceptions.custom_exceptions import(
     ProductNotFoundException,
     ProductOutOfStockException,
     OrderNotFoundException,
+    InvalidTokenException
 )      
 
 def register_exception_handlers(app:FastAPI):
@@ -52,3 +53,13 @@ def register_exception_handlers(app:FastAPI):
                 "message": exc.message,
         },
     )
+
+    @app.exception_handler(InvalidTokenException)
+    async def invalid_token_handler(request: Request, exc: InvalidTokenException):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={
+                "status": "error",
+                "message": exc.message,
+            },
+        )

@@ -32,3 +32,14 @@ class OrderNotFoundException(Exception):
         self.message=f"Order with ID{order_id} not found"
 
         super().__init__(self.message)
+
+
+class InvalidTokenException(Exception):
+    """
+    Raised when a JWT token is invalid or expired.
+    """
+
+    def __init__(self):
+        self.message = "Invalid or expired access token."
+
+        super().__init__(self.message)

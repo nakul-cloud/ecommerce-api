@@ -8,6 +8,7 @@ from app.middleware.timing import register_middleware
 
 from app.routes.products import router as product_router
 from app.routes.orders import router as order_router
+from app.routes.users import router as user_router
 
 
 app = FastAPI(
@@ -31,7 +32,7 @@ def startup():
 # Register application routers
 app.include_router(product_router)
 app.include_router(order_router)
-
+app.include_router(user_router)
 
 @app.get("/")
 def home():

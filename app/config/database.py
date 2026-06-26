@@ -68,6 +68,29 @@ def create_tables():
         )
     """)
 
+    # ==========================
+    # Users Table
+    # ==========================
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        username TEXT NOT NULL UNIQUE,
+
+        email TEXT NOT NULL UNIQUE,
+
+        hashed_password TEXT NOT NULL,
+
+        role TEXT NOT NULL DEFAULT 'customer',
+
+        is_active BOOLEAN NOT NULL DEFAULT 1,
+
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+
     conn.commit()
     conn.close()
 

@@ -21,6 +21,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.agents/
 
 # Virtual Environment
 .venv/
@@ -68,3 +69,4 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+
