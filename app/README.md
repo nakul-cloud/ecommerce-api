@@ -11,10 +11,10 @@ In professional backend engineering, you never put everything in one file. The `
 ```
 app/
 ├── main.py              Entry point — creates the app, wires routers, registers handlers
-├── config/              Settings and database connection
+├── config/              Settings, database connection, and route dependencies
 ├── routes/              HTTP endpoint definitions (URL → handler mapping)
 ├── controllers/         Business logic and database operations
-├── schemas/             Pydantic models for request/response validation
+├── schemas/             Pydantic models for validation (public API and internal)
 ├── exceptions/          Custom exceptions and global error handlers
 ├── middleware/           Request/response interceptors (timing, CORS)
 └── utils/               Shared helper functions and constants
@@ -24,10 +24,24 @@ app/
 
 When a request hits the API, it flows through these layers:
 
-```
-Client ──► Middleware ──► Route ──► Schema (validate) ──► Controller ──► Database
-                                                                           │
-Client ◄── Middleware ◄── Route ◄── Schema (filter) ◄── Controller ◄───────┘
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0', 'titleColor': '#1e293b', 'edgeLabelBackground': '#ffffff', 'textColor': '#334155'}}}%%
+flowchart LR
+    Client([Client]) --> Middleware[Middleware]
+    Middleware --> Route[Route]
+    Route --> Schema[Schema]
+    Schema --> Controller[Controller]
+    Controller --> DB[(Database)]
+    DB --> Controller
+    Controller --> Schema
+    Schema --> Route
+    Route --> Middleware
+    Middleware --> Client
+    
+    style Middleware fill:#4f46e5,stroke:#3730a3,color:#ffffff
+    style Route fill:#4f46e5,stroke:#3730a3,color:#ffffff
+    style Schema fill:#4f46e5,stroke:#3730a3,color:#ffffff
+    style Controller fill:#4f46e5,stroke:#3730a3,color:#ffffff
 ```
 
 If a business error occurs (e.g. product not found), the controller raises a custom exception. The global exception handler intercepts it and returns a clean JSON error response.

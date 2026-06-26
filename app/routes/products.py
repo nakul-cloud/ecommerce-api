@@ -7,7 +7,8 @@ from app.controllers.product_controller import (
     get_product_by_id,
 )
 from app.schemas.product_schema import ProductCreate,ProductResponse
-
+from fastapi import Depends
+from app.config.dependencies import verify_admin_api_key
 
 router = APIRouter(
     prefix='/products',
@@ -18,6 +19,7 @@ router = APIRouter(
     "",
     response_model=ProductResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(verify_admin_api_key)],
 )
 
 def create_new_product(product:ProductCreate):
@@ -30,6 +32,7 @@ def create_new_product(product:ProductCreate):
     "",
     response_model=List[ProductResponse],
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(verify_admin_api_key)],
 )
 def get_products()-> List[ProductResponse]:
     """

@@ -8,3 +8,27 @@ class ProductNotFoundException(Exception):
         self.message=f"Product with ID {product_id} not found"
 
         super().__init__(self.message)
+
+
+class ProductOutOfStockException(Exception):
+    """
+    Raised when a requested product does not have enough stock
+    """
+
+    def __init__(self,product_id:int,):
+        self.product_id=product_id
+        self.message=f"Product with ID {product_id} does not have enough stock"
+
+        super().__init__(self.message)
+
+
+class OrderNotFoundException(Exception):
+    """
+    Raised when a requested order does not exist
+    """
+
+    def __init__(self,order_id:int):
+        self.order_id=order_id
+        self.message=f"Order with ID{order_id} not found"
+
+        super().__init__(self.message)

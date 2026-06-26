@@ -27,19 +27,42 @@ Manages SQLite connections and table creation.
 | `get_db_connection()` | Returns an active SQLite connection with `Row` factory | Controllers |
 | `create_tables()` | Creates `products`, `orders`, `order_items` tables if they don't exist | `main.py` on startup |
 
+### `dependencies.py`
+
+Contains reusable FastAPI dependencies, specifically for request security and validation.
+
+| Function / Dependency | Purpose | Header Required |
+|---|---|---|
+| `verify_admin_api_key()` | Validates client API key against the configured admin key | `X-API-Key` |
+
+> [!IMPORTANT]
+> **FastAPI Dependency Injection (`Depends`)**:
+> Using `Depends` decouples our authentication logic from our route functions. The route handler declares the dependency, and FastAPI resolves it before invoking the function. If validation fails (e.g., invalid/missing API key), FastAPI immediately returns a `401 Unauthorized` response without running the route's body.
+
 > [!WARNING]
 > `CREATE TABLE IF NOT EXISTS` will **not** update existing tables. If you add a column to the schema, you must delete `data/ecommerce.db` and restart the server (or use migrations).
 
 ## Request Flow
 
-```
-[App Startup]
-      │
-      ▼
-config/database.py ──► create_tables() ──► SQLite DB
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0', 'titleColor': '#1e293b', 'edgeLabelBackground': '#ffffff', 'textColor': '#334155'}}}%%
+flowchart TD
+    subgraph StartupFlow [App Startup Flow]
+        direction TB
+        S1[App Startup] --> S2[app/main.py]
+        S2 -->|Calls| S3[config/database.py: create_tables]
+        S3 -->|Initializes| S4[(SQLite DB File)]
+    end
 
-[During Requests]
-Controller ──► config/database.py ──► get_db_connection() ──► SQLite DB
+    subgraph RequestFlow [Active Request Flow]
+        direction TB
+        R1[Controller Action] -->|1. Calls| R2[config/database.py: get_db_connection]
+        R2 -->|2. Returns Connection| R3[Active Connection]
+        R3 -->|3. Query / Update| R4[(SQLite DB File)]
+    end
+    
+    style S3 fill:#4f46e5,stroke:#3730a3,color:#ffffff
+    style R2 fill:#4f46e5,stroke:#3730a3,color:#ffffff
 ```
 
 ## Real-World Analogy
@@ -56,5 +79,6 @@ Controller ──► config/database.py ──► get_db_connection() ──► 
 
 - `settings.py` loads variables from `.env` using `python-dotenv`
 - `database.py` provides `get_db_connection()` and `create_tables()`
+- `dependencies.py` implements reusable route dependencies like administrative API key validation via FastAPI `Depends()`
 - `sqlite3.Row` lets you access columns by name (`row["price"]`) instead of index
 - Changing table schemas requires deleting the `.db` file or running migrations

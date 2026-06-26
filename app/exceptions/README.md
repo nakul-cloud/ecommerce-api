@@ -42,13 +42,18 @@ This division ensures that:
 - **Purpose**: Defines custom domain exception classes representing business/domain problems.
 - **Classes**:
   - `ProductNotFoundException`: Raised when a requested product ID does not exist in the database.
-- **Who calls it**: Raised inside controllers like `product_controller.py`.
+  - `ProductOutOfStockException`: Raised when a product is requested with a quantity exceeding its database stock level.
+  - `OrderNotFoundException`: Raised when a requested order ID does not exist in the database.
+- **Who calls it**: Raised inside controllers like `product_controller.py` and `order_controller.py`.
 
 ### `handlers.py`
 
 - **Purpose**: Defines how FastAPI should translate custom exceptions into HTTP JSON responses.
 - **Functions**:
-  - `register_exception_handlers(app: FastAPI)`: Hooks all custom exception handlers to the FastAPI app instance on startup.
+  - `register_exception_handlers(app: FastAPI)`: Hooks all custom exception handlers to the FastAPI app instance on startup. Registers handlers mapping:
+    - `ProductNotFoundException` &rarr; `404 Not Found`
+    - `ProductOutOfStockException` &rarr; `409 Conflict`
+    - `OrderNotFoundException` &rarr; `404 Not Found`
 - **Who calls it**: Registered in `app/main.py`.
 
 ---
@@ -105,7 +110,9 @@ The same separation applies here:
 | Defines **what** went wrong | Defines **how to respond** to the client |
 | Business/Domain logic level | HTTP/API protocol level |
 | Raised by controllers | Registered in FastAPI application |
-| Example: `ProductNotFoundException` | Returns `404` JSON with error message |
+| Example: `ProductNotFoundException` | Returns `404 Not Found` JSON response |
+| Example: `ProductOutOfStockException` | Returns `409 Conflict` JSON response |
+| Example: `OrderNotFoundException` | Returns `404 Not Found` JSON response |
 
 ### What about technical errors?
 System/Technical errors are different from business exceptions (e.g. SQLite connection failed, database timeouts, network errors, or division-by-zero). We can handle these globally using a general catch-all handler:

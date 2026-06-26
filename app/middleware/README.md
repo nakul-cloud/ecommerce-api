@@ -14,10 +14,29 @@ Measures and logs execution duration of every API request, and adds the duration
 
 **How it works:**
 
-```
-Client (Request) ──► [Middleware: Start timer] ──► Route ──► Controller
-                                                                  │
-Client (Response) ◄── [Middleware: Log duration] ◄────────────────┘
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0', 'titleColor': '#1e293b', 'edgeLabelBackground': '#ffffff', 'textColor': '#334155'}}}%%
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Middleware as Request Timing Middleware
+    participant App as Route / Controller
+
+    Client->>Middleware: Incoming HTTP Request
+    activate Middleware
+    Note over Middleware: Record start_time (time.perf_counter())
+    
+    Middleware->>App: Forward Request
+    activate App
+    App-->>Middleware: Return HTTP Response
+    deactivate App
+    
+    Note over Middleware: Record end_time & calculate process_time
+    Note over Middleware: Add X-Process-Time response header
+    Note over Middleware: Log method, path, and duration to terminal
+    
+    Middleware-->>Client: Return HTTP Response with timing header
+    deactivate Middleware
 ```
 
 ## Real-World Analogy
