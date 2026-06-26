@@ -8,11 +8,15 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://sqlite.org)
 
+<br/>
+
 [Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [API Reference](#api-reference) • [Project Structure](#project-structure) • [What I Learned](#what-i-learned)
 
 </div>
 
 ---
+
+<br/>
 
 ## Overview
 
@@ -20,40 +24,58 @@ This is not a tutorial project with everything crammed into one file. This is a 
 
 The goal: build a backend that I can revisit after a year and understand the architecture within 15 minutes by reading the code and documentation alone.
 
+<br/>
+
 > [!NOTE]
 > This project is actively developed as a phased learning journey. Each phase introduces new backend engineering concepts while keeping the codebase clean and well-documented.
+
+<br/>
+
+---
+
+<br/>
 
 ## Features
 
 ### Implemented
 
-- **Layered Architecture** — Routes, Controllers, Schemas, and Config cleanly separated
-- **Product CRUD** — Create, List, Retrieve, and Delete operations
-- **Order CRUD** — Create orders, list all orders, and retrieve a single order by ID with stock deduction
-- **User & Admin Registration** — Customer sign-up and secure administrator registration guarded by an registration key
-- **JWT Stateless Authentication** — Token generation/decoding using `jose` with secure password hashing using `passlib` (bcrypt)
-- **Role-Based Access Control (RBAC)** — Reusable route dependencies enforce customer or admin permissions (`Depends(require_role("admin"))`)
-- **Pydantic Validation** — Strict request/response schemas with field-level constraints
-- **Internal Schemas** — `ValidatedOrderItem` separates controller-internal data from public API schemas
-- **Custom Exception Handling** — Domain exceptions (`ProductNotFoundException`, `ProductOutOfStockException`, `OrderNotFoundException`, `InvalidCredentialsException`, `InvalidTokenException`, `PermissionDeniedException`) with global handlers returning clean JSON errors
-- **Request Timing Middleware** — Every response includes an `X-Process-Time` header; execution time is logged to the terminal
-- **Environment Configuration** — Secrets (database paths, JWT keys, registration keys) loaded from `.env`, never hardcoded
-- **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box
-- **Database Auto-setup** — Tables created automatically on first startup
+* **Layered Architecture** — Routes, Controllers, Schemas, and Config cleanly separated
+* **Product CRUD** — Create, List, Retrieve, and Delete operations
+* **Order CRUD** — Create orders, list all orders, and retrieve a single order by ID with stock deduction
+* **User & Admin Registration** — Customer sign-up and secure administrator registration guarded by a registration key
+* **JWT Stateless Authentication** — Token generation/decoding using `jose` with secure password hashing using `passlib` (bcrypt)
+* **Role-Based Access Control (RBAC)** — Reusable route dependencies enforce customer or admin permissions (`Depends(require_role("admin"))`)
+* **Pydantic Validation** — Strict request/response schemas with field-level constraints
+* **Internal Schemas** — `ValidatedOrderItem` separates controller-internal data from public API schemas
+* **Custom Exception Handling** — Domain exceptions (`ProductNotFoundException`, `ProductOutOfStockException`, `OrderNotFoundException`, `InvalidCredentialsException`, `InvalidTokenException`, `PermissionDeniedException`) with global handlers returning clean JSON errors
+* **Request Timing Middleware** — Every response includes an `X-Process-Time` header; execution time is logged to the terminal
+* **Environment Configuration** — Secrets (database paths, JWT keys, registration keys) loaded from `.env`, never hardcoded
+* **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box
+* **Database Auto-setup** — Tables created automatically on first startup
+
+<br/>
 
 ### Planned
 
-- Product Update operation and pagination
-- Migration from raw SQL to SQLAlchemy + Alembic
-- Automated testing with pytest
-- AI/RAG integration for product search
+* Product Update operation and pagination
+* Migration from raw SQL to SQLAlchemy + Alembic
+* Automated testing with pytest
+* AI/RAG integration for product search
+
+<br/>
+
+---
+
+<br/>
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.11 or higher
-- Git
+* Python 3.11 or higher
+* Git
+
+<br/>
 
 ### Setup
 
@@ -72,8 +94,10 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install fastapi uvicorn python-dotenv
+pip install fastapi uvicorn python-dotenv python-jose passlib bcrypt
 ```
+
+<br/>
 
 ### Run
 
@@ -82,6 +106,8 @@ uvicorn app.main:app --reload
 ```
 
 The API starts at **http://127.0.0.1:8000**
+
+<br/>
 
 ### Try it
 
@@ -112,8 +138,16 @@ curl -X POST http://127.0.0.1:8000/products \
 }
 ```
 
+<br/>
+
 > [!TIP]
 > Notice that `cost_price` is **not** in the response. The `ProductResponse` schema intentionally hides internal pricing from API consumers. This is a real-world pattern — you never expose your margins to customers.
+
+<br/>
+
+---
+
+<br/>
 
 ## Architecture
 
@@ -178,6 +212,8 @@ sequenceDiagram
     end
 ```
 
+<br/>
+
 ### Design Decisions
 
 | Decision | Why |
@@ -190,6 +226,12 @@ sequenceDiagram
 | **`CREATE TABLE IF NOT EXISTS`** | Startup runs every time. Without `IF NOT EXISTS`, the second startup would crash. |
 | **`.env` for configuration** | Same code runs in dev, staging, and production. Only the `.env` file changes. |
 
+<br/>
+
+---
+
+<br/>
+
 ## API Reference
 
 ### Interactive Documentation
@@ -198,6 +240,8 @@ sequenceDiagram
 |---|---|
 | http://127.0.0.1:8000/docs | **Swagger UI** — interactive, test endpoints directly |
 | http://127.0.0.1:8000/redoc | **ReDoc** — clean read-only documentation |
+
+<br/>
 
 ### Authentication
 
@@ -208,6 +252,8 @@ curl -H "Authorization: Bearer <your-jwt-token>" ...
 ```
 
 You can obtain the JWT access token by sending a POST request to `/auth/login` with your credentials (`username` as email, `password`).
+
+<br/>
 
 ### Endpoints
 
@@ -237,6 +283,8 @@ You can obtain the JWT access token by sending a POST request to `/auth/login` w
 | `GET` | `/orders` | ✅ User (Any) | List all customer orders | `200` |
 | `GET` | `/orders/{order_id}` | ✅ User (Any) | Retrieve a single order by ID | `200` |
 
+<br/>
+
 ### Error Responses
 
 When something goes wrong, the API returns structured JSON errors:
@@ -257,54 +305,49 @@ When something goes wrong, the API returns structured JSON errors:
 | `422` | Validation failed (missing fields, invalid email format, types violated) |
 | `500` | Unexpected server error |
 
+<br/>
+
+---
+
+<br/>
+
 ## Project Structure
+
+Navigate to any sub-directory link below to view its specific, in-depth documentation detailing module flows, design decisions, and common interview questions.
 
 ```
 ecommerce-api/
-├── app/                          # Application package
+├── app/                          # Application package (Core Code)
 │   ├── main.py                   # FastAPI app, startup, router wiring
-│   ├── config/
-│   │   ├── settings.py           # Environment variables (.env loader)
-│   │   ├── database.py           # SQLite connection + table creation
-│   │   └── dependencies.py       # FastAPI dependency: verify_admin_api_key (deprecated)
-│   ├── auth/                     # JWT Authentication & Authorization
-│   │   ├── password.py           # Bcrypt hashing utilities
-│   │   ├── jwt_handler.py        # Token creation & signature verification
-│   │   └── dependencies.py       # Reusable get_current_user & require_role guards
-│   ├── routes/
-│   │   ├── auth.py               # /auth/login endpoint
-│   │   ├── users.py              # /users customer & admin registration endpoints
-│   │   ├── products.py           # /products endpoint definitions with admin check
-│   │   └── orders.py             # /orders endpoint definitions with auth check
-│   ├── controllers/
-│   │   ├── auth_controller.py    # Login authentication & validation logic
-│   │   ├── user_controller.py    # User creation and registration verification
-│   │   ├── product_controller.py # Product business logic + DB operations
-│   │   └── order_controller.py   # Order business logic: create, list, get by ID
-│   ├── schemas/
-│   │   ├── auth_schema.py        # LoginRequest, TokenResponse, TokenPayload
-│   │   ├── user_schema.py        # UserCreate, UserResponse, UserUpdate, AdminRegisterRequest
-│   │   ├── product_schema.py     # ProductCreate, ProductUpdate, ProductResponse
-│   │   ├── order_schema.py       # OrderItem, OrderCreate, OrderResponse
-│   │   └── internal_schemas.py   # ValidatedOrderItem (controller-internal only)
-│   ├── exceptions/
-│   │   ├── custom_exceptions.py  # ProductNotFound, ProductOutOfStock, OrderNotFound, InvalidToken, InvalidCredentials, PermissionDenied
-│   │   └── handlers.py           # Global exception → JSON response mapping
-│   ├── middleware/
-│   │   └── timing.py             # Request timing — logs duration, adds X-Process-Time header
-│   └── utils/
-│       ├── constants.py          # App-wide constants
-│       └── helpers.py            # Reusable helper functions
-├── data/
-│   └── ecommerce.db              # SQLite database (auto-created)
-├── tests/                        # Test suite (coming soon)
-├── .env                          # Environment secrets (not committed)
-├── .gitignore                    # Git ignore rules
-└── requirements.txt              # Python dependencies
+│   ├── config/                   # Configuration settings & DB connections
+│   ├── auth/                     # JWT Authentication & authorization guards
+│   ├── routes/                   # API Route endpoints & HTTP validation
+│   ├── controllers/              # Core business & transaction logic
+│   ├── schemas/                  # Pydantic input/output schemas
+│   ├── exceptions/               # Domain-specific exceptions & handlers
+│   └── middleware/               # HTTP timing interceptors
+├── data/                         # SQLite binary database files
+└── tests/                        # Automated unit & integration tests
 ```
 
-> [!IMPORTANT]
-> Every folder contains its own `README.md` with detailed explanations of purpose, responsibilities, request flow, best practices, and interview questions. Navigate into any folder to learn more.
+### Module Documentation Directory
+
+* 📂 **Core Application Setup** — [`app/README.md`](file:///d:/ecommerce-api/app/README.md)
+* 📂 **Configuration & Database Connections** — [`app/config/README.md`](file:///d:/ecommerce-api/app/config/README.md)
+* 📂 **Authentication, JWT & Authorization Guards** — [`app/auth/README.md`](file:///d:/ecommerce-api/app/auth/README.md)
+* 📂 **API Route Descriptors & Path Resolvers** — [`app/routes/README.md`](file:///d:/ecommerce-api/app/routes/README.md)
+* 📂 **Business Controllers & DB Operations** — [`app/controllers/README.md`](file:///d:/ecommerce-api/app/controllers/README.md)
+* 📂 **Pydantic Validation & Output Formatting Schemas** — [`app/schemas/README.md`](file:///d:/ecommerce-api/app/schemas/README.md)
+* 📂 **Custom Exceptions & Global Handlers** — [`app/exceptions/README.md`](file:///d:/ecommerce-api/app/exceptions/README.md)
+* 📂 **Timing & Logger Middleware** — [`app/middleware/README.md`](file:///d:/ecommerce-api/app/middleware/README.md)
+* 📂 **Database Storage Files** — [`data/README.md`](file:///d:/ecommerce-api/data/README.md)
+* 📂 **Automated Test Suites** — [`tests/README.md`](file:///d:/ecommerce-api/tests/README.md)
+
+<br/>
+
+---
+
+<br/>
 
 ## Tech Stack
 
@@ -319,6 +362,12 @@ ecommerce-api/
 | **passlib[bcrypt]** | Security | Standard password hashing library to secure credentials |
 | **python-jose** | Tokens | Python implementation of JOSE (JSON Object Signing and Encryption) to generate and verify JWTs |
 
+<br/>
+
+---
+
+<br/>
+
 ## Roadmap
 
 | Phase | Focus | Status |
@@ -330,6 +379,12 @@ ecommerce-api/
 | **Phase 5** | SQLAlchemy ORM, Repository pattern, Alembic migrations | 🔜 Planned |
 | **Phase 6** | Automated testing with pytest, Test fixtures | 🔜 Planned |
 | **Phase 7** | AI/RAG integration — product search with embeddings | 🔜 Planned |
+
+<br/>
+
+---
+
+<br/>
 
 ## What I Learned
 
@@ -359,6 +414,12 @@ Building this project taught me patterns that tutorials rarely cover:
 
 12. **JWT verification makes the API stateless.** Instead of maintaining active sessions on the server (stateful), we encrypt the user's identity and permissions into a signed JSON Web Token (JWT) on login. On subsequent requests, the server validates the cryptographic signature of the token using `SECRET_KEY`, authenticating the request securely without any session database reads.
 
+<br/>
+
+---
+
+<br/>
+
 ## Troubleshooting
 
 ### `sqlite3.OperationalError: table has no column named X`
@@ -367,11 +428,16 @@ The table was created with an older schema. `CREATE TABLE IF NOT EXISTS` won't u
 
 **Fix:** Delete `data/ecommerce.db` and restart the server. Tables will be recreated with the current schema.
 
+<br/>
+
 ### `ModuleNotFoundError: No module named 'dotenv'`
 
 Dependencies are not installed in your virtual environment.
 
 **Fix:** Activate your `.venv` and run `pip install python-dotenv`.
+
+<br/>
+
 ### `UnicodeEncodeError` on Windows terminal
 
 Windows console may not support Unicode characters (like emojis) in print statements.

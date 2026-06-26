@@ -1,176 +1,109 @@
-# `app/exceptions/` — Error Handling Layer
+# `app/exceptions/` — Global Exception Handling Layer
 
-This folder houses application-specific exception classes and global handlers to ensure that error messages are handled uniformly, securely, and cleanly.
-
----
-
-## 1. Purpose
-
-> Why do we have an exceptions folder?
-
-In professional API development, controllers should only focus on business logic. If a business validation fails (e.g. a product isn't found), the controller should immediately stop execution and declare the issue by raising an exception, without worrying about HTTP protocols, JSON formats, or status codes. 
-
-The `exceptions/` folder separates:
-- **What went wrong** (defined by Custom Exceptions)
-- **How to respond to the client** (defined by Global Exception Handlers)
-
-This division ensures that:
-- **Tracebacks are hidden**: Raw Python or database error stack traces never leak to API consumers.
-- **API responses are uniform**: Error schemas remain standardized (e.g. `{"status": "error", "message": "..."}`).
-- **Controllers stay clean**: Zero HTTP or JSON serialization logic inside the database query routines.
+> Decouples business logic from the HTTP protocol. Maps custom domain exceptions raised in controllers to structured JSON responses with correct HTTP status codes.
 
 ---
 
-## 2. Responsibilities
+## 1. Overview & Purpose
 
-### What belongs inside `exceptions/`
+In standard backend development, business logic (controllers) should never know about HTTP details. A controller querying the database shouldn't care about JSON formats, header codes, or status strings. If a record is missing, the controller should simply raise a Python exception and halt.
 
-- Custom exception classes subclassing Python's base `Exception` class.
-- Global exception handler registration logic mapping custom exceptions to FastAPI's response cycle.
+The **Exceptions Layer** sits on the perimeter of the application, intercepting these exceptions and translating them into a clean, standardized API error format.
 
-### What does NOT belong inside `exceptions/`
-
-- Business calculations or database CRUD scripts.
-- Router endpoint path decorators.
+### Key Benefits:
+1. **Traceback Masking**: Raw database or Python execution tracebacks never leak to the client, preventing exposure of internal directory structures or SQL queries.
+2. **Decoupled Architecture**: Controllers remain pure and testable. They don't import `HTTPException` or `JSONResponse` from FastAPI.
+3. **Standardized Responses**: Every error returns a consistent JSON payload (e.g. `{"status": "error", "message": "..."}`), making client-side error parsing simple.
 
 ---
 
-## 3. Files
+## 2. Exception Lifecycle & Request Cycle
+
+When a controller throws an exception, normal execution halts, and the request is intercepted by FastAPI's exception middleware handlers:
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e293b', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0', 'textColor': '#334155'}}}%%
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Router as app/routes/products.py
+    participant Controller as product_controller.py
+    participant Handler as handlers.py (product_not_found_handler)
+
+    Client->>Router: GET /products/999
+    activate Router
+    Router->>Controller: get_product_by_id(999)
+    activate Controller
+    Note over Controller: Query DB: ID 999 not found.
+    Note over Controller: Close connection!
+    Controller-->>Router: Raise ProductNotFoundException
+    deactivate Controller
+    
+    Note over Router: Halts normal execution.<br/>Bubbles up exception.
+    Router->>Handler: Match exception type
+    activate Handler
+    Note over Handler: Intercepts custom exception.<br/>Extracts exc.message.
+    Handler-->>Client: Return JSONResponse(status_code=404, content=...)
+    deactivate Handler
+    deactivate Router
+```
+
+---
+
+## 3. Files & Exception Catalog
 
 ### `custom_exceptions.py`
+Defines domain-specific Python exception classes:
+* **`ProductNotFoundException`**: Raised when a requested product ID is missing from SQLite.
+* **`OrderNotFoundException`**: Raised when an order ID is missing from SQLite.
+* **`ProductOutOfStockException`**: Raised when an order's requested quantity exceeds available catalog inventory.
+* **`InvalidCredentialsException`**: Raised when user login credentials fail hashing verification.
+* **`InvalidTokenException`**: Raised when a JWT access token signature, encoding, or expiration verification fails.
+* **`PermissionDeniedException`**: Raised when an authenticated user lacks the required role to execute a route.
 
-- **Purpose**: Defines custom domain exception classes representing business/domain problems.
-- **Classes**:
-  - `ProductNotFoundException`: Raised when a requested product ID does not exist in the database.
-  - `ProductOutOfStockException`: Raised when a product is requested with a quantity exceeding its database stock level.
-  - `OrderNotFoundException`: Raised when a requested order ID does not exist in the database.
-  - `InvalidCredentialsException`: Raised when user login email or password verification fails.
-  - `InvalidTokenException`: Raised when a JWT token signature verification fails, is missing, or is expired.
-  - `PermissionDeniedException`: Raised when the current user's role is not authorized to access a route (e.g. customer accessing admin routes).
-- **Who calls it**: Raised inside controllers like `product_controller.py`, `order_controller.py`, `user_controller.py`, and `auth_controller.py`.
+---
 
 ### `handlers.py`
-
-- **Purpose**: Defines how FastAPI should translate custom exceptions into HTTP JSON responses.
-- **Functions**:
-  - `register_exception_handlers(app: FastAPI)`: Hooks all custom exception handlers to the FastAPI app instance on startup. Registers handlers mapping:
-    - `ProductNotFoundException` &rarr; `404 Not Found`
-    - `ProductOutOfStockException` &rarr; `409 Conflict`
-    - `OrderNotFoundException` &rarr; `404 Not Found`
-    - `InvalidCredentialsException` &rarr; `401 Unauthorized`
-    - `InvalidTokenException` &rarr; `401 Unauthorized`
-    - `PermissionDeniedException` &rarr; `403 Forbidden`
-- **Who calls it**: Registered in `app/main.py`.
+Maps custom exceptions to HTTP response JSON formats:
+* **`product_not_found_handler`** &rarr; `404 Not Found`
+* **`order_not_found_handler`** &rarr; `404 Not Found`
+* **`product_out_of_stock_handler`** &rarr; `409 Conflict` (denotes resource state conflicts)
+* **`invalid_credentials_handler`** &rarr; `401 Unauthorized` (identity verification failed)
+* **`invalid_token_handler`** &rarr; `401 Unauthorized` (token invalid or expired)
+* **`permission_denied_handler`** &rarr; `403 Forbidden` (identity verified, but permissions lacking)
 
 ---
 
-## 4. Request Flow & Exception Lifecycle
+## 4. Real-World Analogy
 
-When a request triggers an error, execution stops immediately and bubbles up to the global handler:
-
-```
-    [Controller]
-         │  
-         │ (if row is None)
-         ▼
-  ProductNotFoundException (Raised!)
-         │
-         ▼ (Interrupts normal request execution)
-  [Global Exception Handler]
-         │
-         ▼ (Formats into clean JSON response)
-  404 Not Found + JSON Response
-```
+Think of global exception handlers as a **Hospital Receptionist handling medical emergencies**:
+- The doctor (controller) is treating a patient. If the doctor runs into a severe issue (e.g. they run out of blood type A), they don't walk out to the waiting room to talk to the patient's family. They simply trigger an emergency protocol (`ProductOutOfStockException`).
+- The hospital's reception coordinator (exception handler) catches the emergency signal, looks at the protocol, and goes out to explain to the family in simple, calm, standardized terms (`409 Conflict` status with a clean message).
+- The doctor remains in the operating room (the controller logic is isolated), and the family receives a polite explanation instead of medical jargon and raw clinical panic (no SQL tracebacks leak to clients).
 
 ---
 
-## 5. Beginner Explanation
+## 5. Interview Questions & Tips
 
-"If I forget this after six months..."
+### 1. Why not raise `HTTPException` inside controllers?
+Raising `HTTPException` directly in controllers couples your core business logic to the HTTP protocol. If you want to run the same code in a offline background worker (e.g., Celery task) or a CLI command, raising an `HTTPException` makes no sense because there is no HTTP request context. Raising custom Python exceptions keeps controllers reusable and clean.
 
-Custom exceptions describe **what** went wrong in your application's logic (like `ProductNotFoundException`), while exception handlers decide **how** the API should respond back to the user (like returning a `404` status code with a clean error message). This keeps business code clean: the controller throws the red flag, and the handler decides how to clean up the mess.
+### 2. What is the difference between `401 Unauthorized` and `403 Forbidden`?
+* **`401 Unauthorized`** (better described as "Unauthenticated"): The server does not know who you are. Your token is missing, expired, or credentials are wrong. You must log in.
+* **`403 Forbidden`**: The server knows exactly who you are (your JWT was validated successfully), but you do not have permission to access that resource. For example, a customer trying to call admin endpoints.
 
----
-
-## 6. Real-World Analogy
-
-Imagine a hospital:
-
-1. **Doctor (Controller)**: Diagnoses the problem: *"The patient has a broken arm."*
-2. **Diagnosis (Custom Exception)**: `"BrokenArmException"`
-3. **Reception/Billing (Global Exception Handler)**: Decides what paperwork, room assignment, and insurance billing process should follow.
-
-The doctor doesn't handle billing, and the receptionist doesn't diagnose injuries.
-
-The same separation applies here:
-- **Controller** → Identifies the application problem.
-- **Custom Exception** → Names that problem.
-- **Global Exception Handler** → Converts it into a proper API response.
+### 3. Why map `ProductOutOfStockException` to `409 Conflict` instead of `400 Bad Request`?
+`400 Bad Request` generally implies client syntax errors (e.g., malformed JSON). `409 Conflict` is the correct HTTP status code for requests that are syntactically correct but conflict with the current state of server resources (such as trying to purchase 10 items when only 2 are in stock).
 
 ---
 
-## 7. Custom Exceptions vs. Global Handlers
+## 6. 30-Second Revision
 
-| Custom Exception | Global Exception Handler |
-|---|---|
-| Defines **what** went wrong | Defines **how to respond** to the client |
-| Business/Domain logic level | HTTP/API protocol level |
-| Raised by controllers | Registered in FastAPI application |
-| Example: `ProductNotFoundException` | Returns `404 Not Found` JSON response |
-| Example: `ProductOutOfStockException` | Returns `409 Conflict` JSON response |
-| Example: `OrderNotFoundException` | Returns `404 Not Found` JSON response |
-| Example: `InvalidCredentialsException` | Returns `401 Unauthorized` JSON response |
-| Example: `InvalidTokenException` | Returns `401 Unauthorized` JSON response |
-| Example: `PermissionDeniedException` | Returns `403 Forbidden` JSON response |
-
-### What about technical errors?
-System/Technical errors are different from business exceptions (e.g. SQLite connection failed, database timeouts, network errors, or division-by-zero). We can handle these globally using a general catch-all handler:
-```python
-@app.exception_handler(Exception)
-```
-This intercepts unexpected bugs, logs the real traceback on the server console for developers, and returns a safe, generic message to the client:
-```json
-{
-    "status": "error",
-    "message": "Internal Server Error"
-}
-```
-
----
-
-## 8. Best Practices
-
-### Do
-
-- Inherit custom exceptions from Python's base `Exception` class.
-- Always close database resources (`conn.close()`) in your controller *before* raising exceptions.
-- Provide descriptive error messages inside exceptions so the handler can read `exc.message` directly.
-
-### Don't
-
-- Avoid putting HTTP status codes directly inside custom exception definitions to preserve logic separation.
-- Never let raw SQL strings or driver tracebacks leak in exception responses.
-
----
-
-## 9. Interview Questions
-
-1. **Why separate custom exceptions from global exception handlers?**
-   To decouple business logic from HTTP protocols. Controllers shouldn't care about JSON formats or status codes; they only care about whether their business operations succeeded.
-2. **What happens if an unhandled exception occurs inside a route?**
-   FastAPI's default error handler catches it, logs the traceback, and returns a general `500 Internal Server Error` response to the client.
-3. **How does Python's `super().__init__(self.message)` work in exceptions?**
-   It initializes the base `Exception` class with the custom error message string, making it retrievable via `str(exc)`.
-
----
-
-## 10. Quick Revision
-
-### 30-Second Revision
-
-- **Custom Exceptions** declare *what* went wrong in application logic (e.g., `ProductNotFoundException`).
-- **Global Handlers** translate those exceptions into HTTP JSON responses (e.g., `404 Not Found`).
-- **Separation of Concerns**: Controllers raise errors; Handlers format responses.
-- **Technical Exceptions** (like database connection issues) are caught globally to hide stack traces and return clean `500` status codes.
-- **Resource Management**: Always release database connections before raising exceptions.
-- Exception handlers are registered globally on the `FastAPI` instance at startup in `main.py`.
+- **Exceptions Layer** converts custom domain errors into clean HTTP responses.
+- **Traceback Protection**: Prevents raw SQL or Python errors from leaking to API consumers.
+- **Status Codes Map**:
+  - Lack of credentials/invalid token &rarr; `401 Unauthorized`
+  - Insufficient role rights &rarr; `403 Forbidden`
+  - Missing catalog entries &rarr; `404 Not Found`
+  - Stock/inventory conflicts &rarr; `409 Conflict`
+- **Controller Separation**: Controllers only raise raw Python exceptions; they never import FastAPI `HTTPException`.
