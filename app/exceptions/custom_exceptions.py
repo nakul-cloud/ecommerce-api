@@ -34,6 +34,17 @@ class OrderNotFoundException(Exception):
         super().__init__(self.message)
 
 
+class InvalidCredentialsException(Exception):
+    """
+    Raised when login credentials are invalid.
+    """
+
+    def __init__(self):
+        self.message = "Invalid email or password."
+
+        super().__init__(self.message)
+
+
 class InvalidTokenException(Exception):
     """
     Raised when a JWT token is invalid or expired.

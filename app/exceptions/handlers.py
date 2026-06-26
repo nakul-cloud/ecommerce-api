@@ -4,7 +4,8 @@ from app.exceptions.custom_exceptions import(
     ProductNotFoundException,
     ProductOutOfStockException,
     OrderNotFoundException,
-    InvalidTokenException
+    InvalidTokenException,
+    InvalidCredentialsException
 )      
 
 def register_exception_handlers(app:FastAPI):
@@ -56,6 +57,23 @@ def register_exception_handlers(app:FastAPI):
 
     @app.exception_handler(InvalidTokenException)
     async def invalid_token_handler(request: Request, exc: InvalidTokenException):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={
+                "status": "error",
+                "message": exc.message,
+            },
+        )
+    
+    @app.exception_handler(InvalidCredentialsException)
+    async def invalid_credentials_handler(
+        request: Request,
+        exc: InvalidCredentialsException,
+    ):
+        """
+        Handle invalid login credentials.
+        """
+
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={
