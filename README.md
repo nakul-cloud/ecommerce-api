@@ -30,19 +30,20 @@ The goal: build a backend that I can revisit after a year and understand the arc
 - **Layered Architecture** — Routes, Controllers, Schemas, and Config cleanly separated
 - **Product CRUD** — Create, List, Retrieve, and Delete operations
 - **Order CRUD** — Create orders, list all orders, and retrieve a single order by ID with stock deduction
+- **User & Admin Registration** — Customer sign-up and secure administrator registration guarded by an registration key
+- **JWT Stateless Authentication** — Token generation/decoding using `jose` with secure password hashing using `passlib` (bcrypt)
+- **Role-Based Access Control (RBAC)** — Reusable route dependencies enforce customer or admin permissions (`Depends(require_role("admin"))`)
 - **Pydantic Validation** — Strict request/response schemas with field-level constraints
 - **Internal Schemas** — `ValidatedOrderItem` separates controller-internal data from public API schemas
-- **Custom Exception Handling** — Domain exceptions (`ProductNotFoundException`, `ProductOutOfStockException`, `OrderNotFoundException`) with global handlers returning clean JSON errors
-- **Admin API Key Auth** — Route-level `X-Api-Key` header dependency guards write operations
+- **Custom Exception Handling** — Domain exceptions (`ProductNotFoundException`, `ProductOutOfStockException`, `OrderNotFoundException`, `InvalidCredentialsException`, `InvalidTokenException`, `PermissionDeniedException`) with global handlers returning clean JSON errors
 - **Request Timing Middleware** — Every response includes an `X-Process-Time` header; execution time is logged to the terminal
-- **Environment Configuration** — Secrets loaded from `.env`, never hardcoded
+- **Environment Configuration** — Secrets (database paths, JWT keys, registration keys) loaded from `.env`, never hardcoded
 - **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box
 - **Database Auto-setup** — Tables created automatically on first startup
 
 ### Planned
 
-- Product Update operation
-- JWT authentication and role-based access
+- Product Update operation and pagination
 - Migration from raw SQL to SQLAlchemy + Alembic
 - Automated testing with pytest
 - AI/RAG integration for product search
@@ -185,7 +186,7 @@ sequenceDiagram
 | **Input schema ≠ Response schema** | `ProductCreate` accepts `cost_price`. `ProductResponse` hides it. The API never exposes internal data. |
 | **Internal schemas for controller data** | `ValidatedOrderItem` carries `unit_price` between validation and insert logic — it is never part of the public API. Keeps the controller readable without polluting `order_schema.py`. |
 | **Custom exceptions over HTTP exceptions** | Controllers raise `ProductNotFoundException` — they don't know about HTTP status codes. The global handler translates it to `404`. Clean separation. |
-| **Dependency injection for auth** | `verify_admin_api_key` is a reusable FastAPI `Depends()` function. Adding auth to a new route is one line. Removing it is one line. |
+| **Dependency injection for auth** | `get_current_user` and `require_role` are reusable FastAPI `Depends()` dependencies. Wires up stateless JWT checks and role enforcement in one line. |
 | **`CREATE TABLE IF NOT EXISTS`** | Startup runs every time. Without `IF NOT EXISTS`, the second startup would crash. |
 | **`.env` for configuration** | Same code runs in dev, staging, and production. Only the `.env` file changes. |
 
@@ -200,33 +201,41 @@ sequenceDiagram
 
 ### Authentication
 
-Protected routes require an `X-Api-Key` header:
+Protected routes require a Bearer token in the `Authorization` header:
 
 ```bash
-curl -H "X-Api-Key: your-api-key" ...
+curl -H "Authorization: Bearer <your-jwt-token>" ...
 ```
 
-The key is configured in your `.env` file via `ADMIN_API_KEY`.
+You can obtain the JWT access token by sending a POST request to `/auth/login` with your credentials (`username` as email, `password`).
 
 ### Endpoints
+
+#### Authentication & Users
+
+| Method | Endpoint | Auth | Description | Status Code |
+|---|---|---|---|---|
+| `GET` | `/` | — | Health check | `200` |
+| `POST` | `/auth/login` | — | Login user, return JWT bearer access token | `200` |
+| `POST` | `/users/register` | — | Register a new customer | `201` |
+| `POST` | `/users/register-admin` | — | Register a new admin (requires `admin_key` in body) | `201` |
 
 #### Products
 
 | Method | Endpoint | Auth | Description | Status Code |
 |---|---|---|---|---|
-| `GET` | `/` | — | Health check | `200` |
-| `POST` | `/products` | ✅ Required | Create a new product | `201` |
-| `GET` | `/products` | ✅ Required | List all products | `200` |
-| `GET` | `/products/{product_id}` | — | Retrieve a single product | `200` |
-| `DELETE` | `/products/{product_id}` | — | Delete a product | `200` |
+| `POST` | `/products` | ✅ Admin Role | Create a new product (Admin Only) | `201` |
+| `GET` | `/products` | — | List all products | `200` |
+| `GET` | `/products/{product_id}` | — | Retrieve a single product by ID | `200` |
+| `DELETE` | `/products/{product_id}` | ✅ Admin Role | Delete a product by ID (Admin Only) | `200` |
 
 #### Orders
 
 | Method | Endpoint | Auth | Description | Status Code |
 |---|---|---|---|---|
-| `POST` | `/orders` | ✅ Required | Create a new order (validates stock, deducts inventory) | `201` |
-| `GET` | `/orders` | — | List all orders | `200` |
-| `GET` | `/orders/{order_id}` | — | Retrieve a single order by ID | `200` |
+| `POST` | `/orders` | ✅ User (Any) | Create a new customer order | `201` |
+| `GET` | `/orders` | ✅ User (Any) | List all customer orders | `200` |
+| `GET` | `/orders/{order_id}` | ✅ User (Any) | Retrieve a single order by ID | `200` |
 
 ### Error Responses
 
@@ -235,15 +244,17 @@ When something goes wrong, the API returns structured JSON errors:
 ```json
 {
   "status": "error",
-  "message": "Product with ID 99 not found"
+  "message": "Invalid or expired access token."
 }
 ```
 
 | Status Code | When |
 |---|---|
-| `401` | Missing or invalid `X-Api-Key` header |
+| `401` | Missing/expired JWT access token, or invalid login credentials |
+| `403` | User does not have permission (e.g. customer hitting admin endpoints) |
 | `404` | Product or Order not found |
-| `422` | Validation failed (missing fields, invalid types, constraints violated) |
+| `409` | Database conflict (e.g. product out of stock during order validation) |
+| `422` | Validation failed (missing fields, invalid email format, types violated) |
 | `500` | Unexpected server error |
 
 ## Project Structure
@@ -255,19 +266,29 @@ ecommerce-api/
 │   ├── config/
 │   │   ├── settings.py           # Environment variables (.env loader)
 │   │   ├── database.py           # SQLite connection + table creation
-│   │   └── dependencies.py       # FastAPI dependency: verify_admin_api_key
+│   │   └── dependencies.py       # FastAPI dependency: verify_admin_api_key (deprecated)
+│   ├── auth/                     # JWT Authentication & Authorization
+│   │   ├── password.py           # Bcrypt hashing utilities
+│   │   ├── jwt_handler.py        # Token creation & signature verification
+│   │   └── dependencies.py       # Reusable get_current_user & require_role guards
 │   ├── routes/
-│   │   ├── products.py           # /products endpoint definitions + admin auth
-│   │   └── orders.py             # /orders endpoint definitions
+│   │   ├── auth.py               # /auth/login endpoint
+│   │   ├── users.py              # /users customer & admin registration endpoints
+│   │   ├── products.py           # /products endpoint definitions with admin check
+│   │   └── orders.py             # /orders endpoint definitions with auth check
 │   ├── controllers/
+│   │   ├── auth_controller.py    # Login authentication & validation logic
+│   │   ├── user_controller.py    # User creation and registration verification
 │   │   ├── product_controller.py # Product business logic + DB operations
-│   │   └── order_controller.py   # Order logic: create, list, get by ID
+│   │   └── order_controller.py   # Order business logic: create, list, get by ID
 │   ├── schemas/
+│   │   ├── auth_schema.py        # LoginRequest, TokenResponse, TokenPayload
+│   │   ├── user_schema.py        # UserCreate, UserResponse, UserUpdate, AdminRegisterRequest
 │   │   ├── product_schema.py     # ProductCreate, ProductUpdate, ProductResponse
 │   │   ├── order_schema.py       # OrderItem, OrderCreate, OrderResponse
 │   │   └── internal_schemas.py   # ValidatedOrderItem (controller-internal only)
 │   ├── exceptions/
-│   │   ├── custom_exceptions.py  # ProductNotFoundException, ProductOutOfStockException, OrderNotFoundException
+│   │   ├── custom_exceptions.py  # ProductNotFound, ProductOutOfStock, OrderNotFound, InvalidToken, InvalidCredentials, PermissionDenied
 │   │   └── handlers.py           # Global exception → JSON response mapping
 │   ├── middleware/
 │   │   └── timing.py             # Request timing — logs duration, adds X-Process-Time header
@@ -295,16 +316,18 @@ ecommerce-api/
 | **SQLite** | Database | Zero-config, file-based — perfect for learning, swap to PostgreSQL later |
 | **Pydantic** | Validation | Catches bad input before your code runs |
 | **python-dotenv** | Configuration | Loads secrets from `.env` so they never touch source code |
+| **passlib[bcrypt]** | Security | Standard password hashing library to secure credentials |
+| **python-jose** | Tokens | Python implementation of JOSE (JSON Object Signing and Encryption) to generate and verify JWTs |
 
 ## Roadmap
 
 | Phase | Focus | Status |
 |---|---|---|
 | **Phase 1** | Project structure, FastAPI setup, SQLite, Product CRUD, Schemas, Custom Exceptions | ✅ Done |
-| **Phase 2** | Order CRUD with stock deduction, Internal schemas, Admin API Key auth, Request timing middleware, `OrderNotFoundException` | ✅ Done |
-| **Phase 3** | Product Update operation, Pagination for list endpoints | 🔜 Planned |
-| **Phase 4** | SQLAlchemy ORM, Repository pattern, Alembic migrations | 🔜 Planned |
-| **Phase 5** | JWT authentication, Role-based access, Rate limiting | 🔜 Planned |
+| **Phase 2** | Order CRUD with stock deduction, Internal schemas, Request timing middleware, `OrderNotFoundException` | ✅ Done |
+| **Phase 3** | JWT stateless authentication (Bcrypt, token encoding/decoding), User & Admin registration, Role-Based Access Control (RBAC) | ✅ Done |
+| **Phase 4** | Product Update operation, Pagination for list endpoints | 🔜 Planned |
+| **Phase 5** | SQLAlchemy ORM, Repository pattern, Alembic migrations | 🔜 Planned |
 | **Phase 6** | Automated testing with pytest, Test fixtures | 🔜 Planned |
 | **Phase 7** | AI/RAG integration — product search with embeddings | 🔜 Planned |
 
@@ -330,7 +353,11 @@ Building this project taught me patterns that tutorials rarely cover:
 
 9. **Middleware runs once for every request.** Measuring time inside every route handler would be copy-paste. One `@app.middleware("http")` block with `time.perf_counter()` measures all requests automatically and adds the `X-Process-Time` response header without touching any route function.
 
-10. **Dependency injection is reusable auth.** `Depends(verify_admin_api_key)` added to a route decorator enforces header-based auth without duplicating validation code. Adding it to a new route is a single line.
+10. **Dependency injection is reusable auth.** `Depends(get_current_user)` and `Depends(require_role("admin"))` added to route handlers enforce JWT validation and role requirements without duplicating logic. Adding permission guards is as simple as a single decorator parameter.
+
+11. **Bcrypt hashing is one-way security.** We never store plain passwords. Bcrypt cryptographically hashes passwords with a random salt. Even if the database is leaked, raw passwords cannot be decrypted. During login, we verify credentials by applying the salt to the login password and checking if the resulting hash matches.
+
+12. **JWT verification makes the API stateless.** Instead of maintaining active sessions on the server (stateful), we encrypt the user's identity and permissions into a signed JSON Web Token (JWT) on login. On subsequent requests, the server validates the cryptographic signature of the token using `SECRET_KEY`, authenticating the request securely without any session database reads.
 
 ## Troubleshooting
 
@@ -345,7 +372,6 @@ The table was created with an older schema. `CREATE TABLE IF NOT EXISTS` won't u
 Dependencies are not installed in your virtual environment.
 
 **Fix:** Activate your `.venv` and run `pip install python-dotenv`.
-
 ### `UnicodeEncodeError` on Windows terminal
 
 Windows console may not support Unicode characters (like emojis) in print statements.

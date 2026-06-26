@@ -54,3 +54,13 @@ class InvalidTokenException(Exception):
         self.message = "Invalid or expired access token."
 
         super().__init__(self.message)
+
+class PermissionDeniedException(Exception):
+    """
+    Raised when the authenticated user does not have permission.
+    """
+
+    def __init__(self):
+        self.message = "You do not have permission to perform this action."
+
+        super().__init__(self.message)

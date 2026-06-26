@@ -13,10 +13,13 @@ Loads environment variables from the `.env` file using `python-dotenv` and expos
 | `APP_NAME` | `"E-Commerce API"` | Application title shown in Swagger docs |
 | `APP_VERSION` | `"1.0.0"` | API version string |
 | `DATABASE_PATH` | `"data/ecommerce.db"` | Path to the SQLite database file |
-| `ADMIN_API_KEY` | `"admin123"` | API key for admin operations |
+| `SECRET_KEY` | *None (Required)* | Cryptographic key used to sign JWT access tokens |
+| `ALGORITHM` | `"HS256"` | Hash algorithm used to encode/decode JWTs |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Duration (in minutes) before a JWT token expires |
+| `ADMIN_REGISTRATION_KEY` | *None (Required)* | Required key to authorize new admin registration |
 
 > [!CAUTION]
-> Never hardcode secrets in Python files. Always use `.env` for API keys and credentials. The `.env` file is excluded from Git via `.gitignore`.
+> Never hardcode secrets in Python files. Always load sensitive parameters (like `SECRET_KEY` and `ADMIN_REGISTRATION_KEY`) from the `.env` file, which is excluded from Git version control.
 
 ### `database.py`
 
@@ -25,21 +28,12 @@ Manages SQLite connections and table creation.
 | Function | Purpose | Called By |
 |---|---|---|
 | `get_db_connection()` | Returns an active SQLite connection with `Row` factory | Controllers |
-| `create_tables()` | Creates `products`, `orders`, `order_items` tables if they don't exist | `main.py` on startup |
+| `create_tables()` | Creates `products`, `orders`, `order_items`, and `users` tables if they don't exist | `main.py` on startup |
 
 ### `dependencies.py`
 
-Contains reusable FastAPI dependencies, specifically for request security and validation.
-
-| Function / Dependency | Purpose | Header Required |
-|---|---|---|
-| `verify_admin_api_key()` | Validates client API key against the configured admin key | `X-API-Key` |
-
-> [!IMPORTANT]
-> **FastAPI Dependency Injection (`Depends`)**:
-> Using `Depends` decouples our authentication logic from our route functions. The route handler declares the dependency, and FastAPI resolves it before invoking the function. If validation fails (e.g., invalid/missing API key), FastAPI immediately returns a `401 Unauthorized` response without running the route's body.
-
-> [!WARNING]
+> [!NOTE]
+> **Migration Note**: The simple header-based API key check (`verify_admin_api_key`) has been fully migrated to a stateless JWT and role-based access control (RBAC) architecture located under `app/auth/dependencies.py`. This file is kept as a reference.
 > `CREATE TABLE IF NOT EXISTS` will **not** update existing tables. If you add a column to the schema, you must delete `data/ecommerce.db` and restart the server (or use migrations).
 
 ## Request Flow

@@ -24,6 +24,23 @@ Without schemas, you'd write manual `if/else` checks for every field of every in
 | `OrderCreate` | Validates a new order with multiple items | `items` (List[OrderItem], min 1 item) |
 | `OrderResponse` | Returns order details to the client | `id`, `total_amount`, `items` |
 
+### `user_schema.py`
+
+| Schema | Purpose | Key Fields |
+|---|---|---|
+| `UserCreate` | Validates input for customer registration | `username`, `email` (valid email format), `password` |
+| `AdminRegisterRequest` | Validates input for admin registration | Inherits `UserCreate`, adds `admin_key` |
+| `UserResponse` | Filters output — returns user profile | `id`, `username`, `email`, `role`, `is_active` |
+| `UserUpdate` | Validates partial profile updates | `username`, `email` |
+
+### `auth_schema.py`
+
+| Schema | Purpose | Key Fields |
+|---|---|---|
+| `LoginRequest` | Validates manual login requests | `email`, `password` |
+| `TokenResponse` | Returns the bearer access token to client | `access_token`, `token_type` (default: "bearer") |
+| `TokenPayload` | Represents internal decoded JWT token payload | `sub` (user email), `role` (user role) |
+
 ### `internal_schemas.py`
 
 Contains internal Pydantic models used inside controllers and services to pass structured data between application layers without exposing them to public API clients.

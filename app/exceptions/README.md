@@ -44,7 +44,10 @@ This division ensures that:
   - `ProductNotFoundException`: Raised when a requested product ID does not exist in the database.
   - `ProductOutOfStockException`: Raised when a product is requested with a quantity exceeding its database stock level.
   - `OrderNotFoundException`: Raised when a requested order ID does not exist in the database.
-- **Who calls it**: Raised inside controllers like `product_controller.py` and `order_controller.py`.
+  - `InvalidCredentialsException`: Raised when user login email or password verification fails.
+  - `InvalidTokenException`: Raised when a JWT token signature verification fails, is missing, or is expired.
+  - `PermissionDeniedException`: Raised when the current user's role is not authorized to access a route (e.g. customer accessing admin routes).
+- **Who calls it**: Raised inside controllers like `product_controller.py`, `order_controller.py`, `user_controller.py`, and `auth_controller.py`.
 
 ### `handlers.py`
 
@@ -54,6 +57,9 @@ This division ensures that:
     - `ProductNotFoundException` &rarr; `404 Not Found`
     - `ProductOutOfStockException` &rarr; `409 Conflict`
     - `OrderNotFoundException` &rarr; `404 Not Found`
+    - `InvalidCredentialsException` &rarr; `401 Unauthorized`
+    - `InvalidTokenException` &rarr; `401 Unauthorized`
+    - `PermissionDeniedException` &rarr; `403 Forbidden`
 - **Who calls it**: Registered in `app/main.py`.
 
 ---
@@ -113,6 +119,9 @@ The same separation applies here:
 | Example: `ProductNotFoundException` | Returns `404 Not Found` JSON response |
 | Example: `ProductOutOfStockException` | Returns `409 Conflict` JSON response |
 | Example: `OrderNotFoundException` | Returns `404 Not Found` JSON response |
+| Example: `InvalidCredentialsException` | Returns `401 Unauthorized` JSON response |
+| Example: `InvalidTokenException` | Returns `401 Unauthorized` JSON response |
+| Example: `PermissionDeniedException` | Returns `403 Forbidden` JSON response |
 
 ### What about technical errors?
 System/Technical errors are different from business exceptions (e.g. SQLite connection failed, database timeouts, network errors, or division-by-zero). We can handle these globally using a general catch-all handler:

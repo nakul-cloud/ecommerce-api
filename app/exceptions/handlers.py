@@ -5,7 +5,8 @@ from app.exceptions.custom_exceptions import(
     ProductOutOfStockException,
     OrderNotFoundException,
     InvalidTokenException,
-    InvalidCredentialsException
+    InvalidCredentialsException,
+    PermissionDeniedException,
 )      
 
 def register_exception_handlers(app:FastAPI):
@@ -76,6 +77,18 @@ def register_exception_handlers(app:FastAPI):
 
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            content={
+                "status": "error",
+                "message": exc.message,
+            },
+        )
+    @app.exception_handler(PermissionDeniedException)
+    async def permission_denied_handler(
+        request: Request,
+        exc: PermissionDeniedException,
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
             content={
                 "status": "error",
                 "message": exc.message,

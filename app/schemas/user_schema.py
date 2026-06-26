@@ -29,3 +29,11 @@ class UserUpdate(BaseModel):
     """
     username:str
     email:EmailStr
+
+
+class AdminRegisterRequest(UserCreate):
+    """
+    Request schema for admin registration.
+    """
+
+    admin_key: str

@@ -31,6 +31,23 @@ Coordinates database operations and business logic to manage customer orders.
 | `get_all_orders()` | Retrieves all customer orders along with their nested items from the database. |
 | `get_order_by_id(order_id: int)` | Retrieves a single customer order with items by ID; raises `OrderNotFoundException` if it doesn't exist. |
 
+### `user_controller.py`
+
+Coordinates customer and administrator account registration.
+
+| Function | Purpose |
+|---|---|
+| `create_user(user: UserCreate)` | Hashes the user password using Bcrypt, registers a customer with `"customer"` role in SQLite, and returns details. |
+| `create_admin(admin: AdminRegisterRequest)` | Validates the configuration `ADMIN_REGISTRATION_KEY`, hashes the password, and creates an administrator with `"admin"` role in SQLite. |
+
+### `auth_controller.py`
+
+Coordinates user login authentication and JWT access token issuance.
+
+| Function | Purpose |
+|---|---|
+| `login_user(form_data: OAuth2PasswordRequestForm)` | Retrieves user by email, verifies Bcrypt password, checks active status, and returns a signed JWT access token. |
+
 ---
 
 ## Deep Dive: Order Controller (`order_controller.py`)

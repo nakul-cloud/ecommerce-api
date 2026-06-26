@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from app.config.settings import DATABASE_PATH
 
@@ -6,6 +7,9 @@ def get_db_connection():
     """
     Create and return SQLite connection.
     """
+    print("DATABASE_PATH:", DATABASE_PATH)
+    print("ABSOLUTE PATH:", os.path.abspath(DATABASE_PATH))
+
     conn = sqlite3.connect(
         DATABASE_PATH,
         check_same_thread=False

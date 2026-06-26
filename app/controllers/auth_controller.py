@@ -1,22 +1,29 @@
+from fastapi.security import OAuth2PasswordRequestForm
+
 from app.config.database import get_db_connection
 
 from app.schemas.auth_schema import (
-    LoginRequest,
     TokenResponse,
 )
 
 from app.auth.password import verify_password
 from app.auth.jwt_handler import create_access_token
-from app.exceptions.custom_exceptions import InvalidCredentialsException
+
+from app.exceptions.custom_exceptions import (
+    InvalidCredentialsException,
+)
 
 
-
-def login_user(login_data: LoginRequest) -> TokenResponse:
+def login_user(
+    form_data: OAuth2PasswordRequestForm,
+) -> TokenResponse:
     """
     Authenticate a user and return a JWT access token.
     """
 
+    # --------------------------------------------------
     # Create database connection
+    # --------------------------------------------------
     conn = get_db_connection()
 
     # Create cursor
@@ -24,6 +31,8 @@ def login_user(login_data: LoginRequest) -> TokenResponse:
 
     # --------------------------------------------------
     # Find user by email
+    # OAuth2 uses "username" field.
+    # We treat username as email.
     # --------------------------------------------------
     cursor.execute(
         """
@@ -37,7 +46,9 @@ def login_user(login_data: LoginRequest) -> TokenResponse:
         FROM users
         WHERE email = ?
         """,
-        (login_data.email,),
+        (
+            form_data.username,
+        ),
     )
 
     user = cursor.fetchone()
@@ -46,19 +57,26 @@ def login_user(login_data: LoginRequest) -> TokenResponse:
     conn.close()
 
     # --------------------------------------------------
-    # User does not exist
+    # User not found
     # --------------------------------------------------
     if user is None:
-        raise InvalidCredentialsException
+        raise InvalidCredentialsException()
+
     # --------------------------------------------------
     # Verify password
     # --------------------------------------------------
     if not verify_password(
-        login_data.password,
+        form_data.password,
         user["hashed_password"],
     ):
-        raise InvalidCredentialsException
-        
+        raise InvalidCredentialsException()
+
+    # --------------------------------------------------
+    # Check if account is active
+    # --------------------------------------------------
+    if not user["is_active"]:
+        raise InvalidCredentialsException()
+
     # --------------------------------------------------
     # Generate JWT
     # --------------------------------------------------
@@ -70,7 +88,7 @@ def login_user(login_data: LoginRequest) -> TokenResponse:
     )
 
     # --------------------------------------------------
-    # Return token
+    # Return JWT
     # --------------------------------------------------
     return TokenResponse(
         access_token=access_token,

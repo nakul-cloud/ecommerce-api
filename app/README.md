@@ -12,9 +12,10 @@ In professional backend engineering, you never put everything in one file. The `
 app/
 ├── main.py              Entry point — creates the app, wires routers, registers handlers
 ├── config/              Settings, database connection, and route dependencies
+├── auth/                User authentication, password hashing, and JWT utilities
 ├── routes/              HTTP endpoint definitions (URL → handler mapping)
 ├── controllers/         Business logic and database operations
-├── schemas/             Pydantic models for validation (public API and internal)
+├── schemas/             Pydantic models for validation (public API, auth, and internal)
 ├── exceptions/          Custom exceptions and global error handlers
 ├── middleware/           Request/response interceptors (timing, CORS)
 └── utils/               Shared helper functions and constants
@@ -71,12 +72,13 @@ Think of `app/` as a **hospital**:
 | Folder | Hospital Equivalent |
 |---|---|
 | `main.py` | The building itself |
-| `config/` | Power supply and medical records system |
+| `config/` | Power supply and medical records database |
+| `auth/` | ID badges and security clearances — verifies who can access which wards |
 | `routes/` | Reception desk — directs patients |
 | `controllers/` | Doctors — diagnose and treat |
 | `schemas/` | Intake forms — verify patient information |
 | `exceptions/` | Emergency protocols — handle when things go wrong |
-| `middleware/` | Security checkpoint at the entrance |
+| `middleware/` | Security checkpoint at the main entrance |
 | `utils/` | Shared medical instruments |
 
 ## Best Practices

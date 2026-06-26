@@ -4,16 +4,33 @@
 
 ## Files
 
+### `auth.py`
+
+Defines all authentication and login endpoints under the `/auth` prefix.
+
+| Method | Path | Handler | Status Code | Requires Auth? | Description |
+|---|---|---|---|---|---|
+| `POST` | `/auth/login` | `login()` | `200` | No (Form Data) | Authenticate user credentials and return a signed JWT access token |
+
+### `users.py`
+
+Defines user and administrator registration endpoints under the `/users` prefix.
+
+| Method | Path | Handler | Status Code | Requires Auth? | Description |
+|---|---|---|---|---|---|
+| `POST` | `/users/register` | `register_user()` | `201` | No | Register a new customer profile (role: `"customer"`) |
+| `POST` | `/users/register-admin` | `register_admin()` | `201` | No (requires `admin_key` in body) | Register a new administrator profile (role: `"admin"`) |
+
 ### `products.py`
 
 Defines all `/products` endpoints using FastAPI's `APIRouter`.
 
 | Method | Path | Handler | Status Code | Requires Auth? | Description |
 |---|---|---|---|---|---|
-| `POST` | `/products` | `create_new_product()` | `201` | **Yes** (Admin API Key) | Create a new product |
-| `GET` | `/products` | `get_products()` | `200` | **Yes** (Admin API Key) | List all products |
-| `GET` | `/products/{product_id}` | `get_product()` | `200` | No | Retrieve a single product |
-| `DELETE` | `/products/{product_id}` | `del_product()` | `200` | No | Delete a product |
+| `POST` | `/products` | `create_new_product()` | `201` | **Yes** (Admin Role JWT) | Create a new product (Admin Only) |
+| `GET` | `/products` | `get_products()` | `200` | No | List all products |
+| `GET` | `/products/{product_id}` | `get_product()` | `200` | No | Retrieve a single product by ID |
+| `DELETE` | `/products/{product_id}` | `delete_existing_product()` | `200` | **Yes** (Admin Role JWT) | Delete a product by ID (Admin Only) |
 
 ### `orders.py`
 
@@ -21,9 +38,9 @@ Defines all `/orders` endpoints using FastAPI's `APIRouter`.
 
 | Method | Path | Handler | Status Code | Requires Auth? | Description |
 |---|---|---|---|---|---|
-| `POST` | `/orders` | `create_new_order()` | `201` | **Yes** (Admin API Key) | Create a new customer order |
-| `GET` | `/orders` | `get_orders()` | `200` | No | Retrieve all orders |
-| `GET` | `/orders/{order_id}` | `get_order()` | `200` | No | Retrieve a single order by ID |
+| `POST` | `/orders` | `create_new_order()` | `201` | **Yes** (Authenticated User JWT) | Create a new customer order |
+| `GET` | `/orders` | `get_orders()` | `200` | **Yes** (Authenticated User JWT) | Retrieve all orders |
+| `GET` | `/orders/{order_id}` | `get_order()` | `200` | **Yes** (Authenticated User JWT) | Retrieve a single order by ID |
 
 ## How Routes Work
 
@@ -70,3 +87,4 @@ Routes = **Reception desk**. They look at what the visitor wants, verify their p
 - `APIRouter` groups endpoints by feature domain
 - `response_model` controls which fields appear in the response (security filter)
 - Route functions should contain zero business logic — only delegation
+- Reusable FastAPI security dependencies (e.g. `Depends(get_current_user)`) guard endpoints to verify tokens and roles before reaching the controller level
