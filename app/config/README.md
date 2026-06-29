@@ -62,12 +62,45 @@ Leverages `python-dotenv` to parse environment variables from the `.env` file, s
 ### `database.py`
 Manages database client connections and schema creations:
 * **`get_db_connection() -> sqlite3.Connection`**:
-  - Opens a connection to the SQLite database.
-  - Configures `conn.row_factory = sqlite3.Row` (allowing columns to be accessed by name like `row["price"]` rather than array index `row[4]`).
-  - Sets `check_same_thread=False` to handle FastAPI's concurrent requests.
+  - Opens a connection to the SQLite database file at `DATABASE_PATH`.
+  - Sets `conn.row_factory = sqlite3.Row` — columns are accessed by name (`row["price"]`) rather than integer index (`row[4]`).
+  - Sets `check_same_thread=False` to allow FastAPI's concurrent worker threads to share connections.
+  - Enables `PRAGMA foreign_keys = ON` to enforce referential integrity between tables.
 * **`create_tables()`**:
-  - Initializes database schema configurations.
-  - Generates the `products`, `orders`, `order_items`, and `users` tables if they do not exist.
+  - Called at application startup via `@app.on_event("startup")` in `main.py`.
+  - Creates all four tables using `CREATE TABLE IF NOT EXISTS` so restarts never reset data.
+
+**Full Database Schema:**
+
+| Table | Column | Type | Constraints |
+|---|---|---|---|
+| `products` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
+| | `name` | `TEXT` | `NOT NULL` |
+| | `description` | `TEXT` | — |
+| | `category` | `TEXT` | `NOT NULL` |
+| | `price` | `REAL` | `NOT NULL` |
+| | `stock_quantity` | `INTEGER` | `NOT NULL`, `CHECK >= 0` |
+| | `cost_price` | `REAL` | `NOT NULL` |
+| | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
+| `users` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
+| | `username` | `TEXT` | `NOT NULL UNIQUE` |
+| | `email` | `TEXT` | `NOT NULL UNIQUE` |
+| | `hashed_password` | `TEXT` | `NOT NULL` |
+| | `role` | `TEXT` | `NOT NULL DEFAULT 'customer'` |
+| | `is_active` | `BOOLEAN` | `NOT NULL DEFAULT 1` |
+| | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
+| | `updated_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
+| `orders` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
+| | `user_id` | `INTEGER` | `NOT NULL`, `FK -> users(id)` |
+| | `status` | `TEXT` | `NOT NULL DEFAULT 'Pending'` |
+| | `total_amount` | `REAL` | `NOT NULL` |
+| | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
+| | `updated_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
+| `order_items` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
+| | `order_id` | `INTEGER` | `NOT NULL`, `FK -> orders(id)` |
+| | `product_id` | `INTEGER` | `NOT NULL`, `FK -> products(id)` |
+| | `quantity` | `INTEGER` | `NOT NULL` |
+| | `unit_price` | `REAL` | `NOT NULL` |
 
 ---
 

@@ -57,9 +57,10 @@ Defines domain-specific Python exception classes:
 * **`ProductNotFoundException`**: Raised when a requested product ID is missing from SQLite.
 * **`OrderNotFoundException`**: Raised when an order ID is missing from SQLite.
 * **`ProductOutOfStockException`**: Raised when an order's requested quantity exceeds available catalog inventory.
-* **`InvalidCredentialsException`**: Raised when user login credentials fail hashing verification.
+* **`InvalidCredentialsException`**: Raised when user login credentials (email or password) fail verification.
 * **`InvalidTokenException`**: Raised when a JWT access token signature, encoding, or expiration verification fails.
-* **`PermissionDeniedException`**: Raised when an authenticated user lacks the required role to execute a route.
+* **`PermissionDeniedException`**: Raised when an authenticated user lacks the required role to execute a route. Also raised when an incorrect `admin_key` is provided during admin registration.
+* **`InvalidPasswordException`**: Raised when the user provides an incorrect `old_password` during a password change request.
 
 ---
 
@@ -67,10 +68,11 @@ Defines domain-specific Python exception classes:
 Maps custom exceptions to HTTP response JSON formats:
 * **`product_not_found_handler`** &rarr; `404 Not Found`
 * **`order_not_found_handler`** &rarr; `404 Not Found`
-* **`product_out_of_stock_handler`** &rarr; `409 Conflict` (denotes resource state conflicts)
+* **`product_out_of_stock_handler`** &rarr; `409 Conflict` (resource state conflict)
 * **`invalid_credentials_handler`** &rarr; `401 Unauthorized` (identity verification failed)
 * **`invalid_token_handler`** &rarr; `401 Unauthorized` (token invalid or expired)
 * **`permission_denied_handler`** &rarr; `403 Forbidden` (identity verified, but permissions lacking)
+* **`invalid_password_handler`** &rarr; `400 Bad Request` (old password verification failed during password change)
 
 ---
 
@@ -103,7 +105,8 @@ Raising `HTTPException` directly in controllers couples your core business logic
 - **Traceback Protection**: Prevents raw SQL or Python errors from leaking to API consumers.
 - **Status Codes Map**:
   - Lack of credentials/invalid token &rarr; `401 Unauthorized`
-  - Insufficient role rights &rarr; `403 Forbidden`
-  - Missing catalog entries &rarr; `404 Not Found`
+  - Insufficient role rights / wrong admin key &rarr; `403 Forbidden`
+  - Missing catalog/order entries &rarr; `404 Not Found`
   - Stock/inventory conflicts &rarr; `409 Conflict`
+  - Incorrect old password during change &rarr; `400 Bad Request`
 - **Controller Separation**: Controllers only raise raw Python exceptions; they never import FastAPI `HTTPException`.

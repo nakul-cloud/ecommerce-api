@@ -50,13 +50,15 @@ flowchart TD
 ### `product_controller.py`
 Enforces basic CRUD rules for the product catalog:
 * **`create_product(product: ProductCreate) -> ProductResponse`**
-  - Inserts product records (including `cost_price`).
+  - Inserts product records (including `cost_price` stored in DB but hidden from response).
 * **`get_all_products() -> List[ProductResponse]`**
-  - Retrieves all active products.
+  - SELECTs all rows from `products`, maps each to `ProductResponse`.
 * **`get_product_by_id(product_id: int) -> ProductResponse`**
-  - Fetches product details. Raises `ProductNotFoundException` if the product ID does not exist in SQLite.
+  - Fetches a single product. Raises `ProductNotFoundException` if the ID does not exist.
+* **`update_product(product_id: int, product: ProductUpdate) -> ProductResponse`**
+  - First checks if the product exists; raises `ProductNotFoundException` if not. Then applies partial updates — any field set to `None` in the `ProductUpdate` schema keeps its existing DB value. Commits the UPDATE and returns the merged `ProductResponse`.
 * **`delete_product(product_id: int) -> dict`**
-  - Removes product by ID. Raises `ProductNotFoundException` if missing.
+  - DELETEs the product row. Uses `cursor.rowcount == 0` to detect missing IDs, raises `ProductNotFoundException` before closing the connection.
 
 ---
 
@@ -73,11 +75,15 @@ Orchestrates complex transaction logic spanning multiple tables:
 ---
 
 ### `user_controller.py`
-Manages account registration:
+Manages account registration and profile management:
 * **`create_user(user: UserCreate) -> UserResponse`**
-  - Encrypts user passwords using Bcrypt before writing them to the `users` table. Defaults user role to `"customer"`.
+  - Bcrypt-hashes the password, INSERTs to `users` with `role = 'customer'` (default). Returns `UserResponse` with `lastrowid`.
 * **`create_admin(admin: AdminRegisterRequest) -> UserResponse`**
-  - Validates `admin.admin_key` against the system's `ADMIN_REGISTRATION_KEY`. If authorized, inserts the user with the `"admin"` role.
+  - Validates `admin.admin_key` against `ADMIN_REGISTRATION_KEY` from settings. Raises `PermissionDeniedException` (403) if the key is wrong. If authorized, inserts with `role = 'admin'`.
+* **`update_current_user(current_user: UserResponse, user: UserUpdate) -> UserResponse`**
+  - UPDATEs `username` and `email` for the authenticated user's row. Sets `updated_at = CURRENT_TIMESTAMP`. Returns merged `UserResponse` from the injected user context + new values.
+* **`change_password(current_user: UserResponse, password_data: ChangePasswordRequest) -> dict`**
+  - Fetches the user's current `hashed_password` from DB. Bcrypt-verifies `old_password` — raises `InvalidPasswordException` (400) if wrong. If correct, hashes `new_password` and UPDATEs the row.
 
 ---
 

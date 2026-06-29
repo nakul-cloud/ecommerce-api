@@ -20,7 +20,7 @@ In clean web architecture, the **Routing Layer** acts as the external gateway of
 When a request reaches the application, the Routing Layer processes input validation and authorization checks before calling the controller:
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e293b', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0', 'actorBkg': '#f8fafc', 'actorBorder': '#cbd5e1', 'actorTextColor': '#1e293b', 'signalColor': '#4f46e5', 'signalTextColor': '#ffffff', 'noteBkgColor': '#fef08a', 'noteBorderColor': '#facc15', 'noteTextColor': '#713f12'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#f8fafc', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e293b', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#cbd5e1', 'actorBkg': '#f8fafc', 'actorBorder': '#cbd5e1', 'actorTextColor': '#1e293b', 'signalColor': '#4f46e5', 'signalTextColor': '#ffffff', 'noteBkgColor': '#fef08a', 'noteBorderColor': '#facc15', 'noteTextColor': '#713f12'}}}%%
 flowchart LR
     Client([Client]) -->|1. HTTP Request| Router[APIRouter]
     Router -->|2. Enforce Security| Auth{Depends Auth}
@@ -62,14 +62,35 @@ Prefixed with `/users` (implicitly), tags: `["Users"]`
   - **Auth Required**: No (Public)
   - **Inputs**: JSON body `UserCreate` (username, email, password).
   - **Output**: `UserResponse` (id, username, email, role: "customer", is_active).
-  - **Description**: Registers a new customer profile. Passwords are encrypted before storing in the database.
+  - **Description**: Registers a new customer profile. Password is bcrypt-hashed before storing.
 
 * **`POST /users/register-admin`**
   - **Handler**: `register_admin()`
-  - **Auth Required**: No (requires registration key validation in controller)
+  - **Auth Required**: No (requires `admin_key` field in body for validation in the controller)
   - **Inputs**: JSON body `AdminRegisterRequest` (username, email, password, `admin_key`).
   - **Output**: `UserResponse` (id, username, email, role: "admin", is_active).
-  - **Description**: Registers a new administrator profile. Fails if the provided `admin_key` does not match the configured `ADMIN_REGISTRATION_KEY`.
+  - **Description**: Registers a new administrator profile. Raises `PermissionDeniedException` (403) if `admin_key` does not match `ADMIN_REGISTRATION_KEY` in `.env`.
+
+* **`GET /users/me`**
+  - **Handler**: `get_my_profile()`
+  - **Auth Required**: **Yes** (`Depends(get_current_user)`)
+  - **Inputs**: None (JWT token in `Authorization: Bearer` header).
+  - **Output**: `UserResponse` of the currently authenticated user.
+  - **Description**: Returns the full profile of whoever is currently logged in. The user is injected from the token via dependency.
+
+* **`PUT /users/me`**
+  - **Handler**: `update_my_profile()`
+  - **Auth Required**: **Yes** (`Depends(get_current_user)`)
+  - **Inputs**: JSON body `UserUpdate` (username, email).
+  - **Output**: Updated `UserResponse`.
+  - **Description**: Updates the username and email of the currently authenticated user. Writes `updated_at = CURRENT_TIMESTAMP` to the DB row.
+
+* **`PUT /users/change-password`**
+  - **Handler**: `change_my_password()`
+  - **Auth Required**: **Yes** (`Depends(get_current_user)`)
+  - **Inputs**: JSON body `ChangePasswordRequest` (old_password, new_password — both min 6 chars).
+  - **Output**: JSON `{"message": "Password changed successfully."}`.
+  - **Description**: Verifies the user's current password via bcrypt, then stores the newly hashed password. Raises `InvalidPasswordException` (400) if old_password is wrong.
 
 ---
 
@@ -88,20 +109,27 @@ Prefixed with `/products`, tags: `["Products"]`
   - **Auth Required**: No (Public)
   - **Inputs**: None
   - **Output**: `List[ProductResponse]`
-  - **Description**: Returns all catalog products. Publicly viewable for guests.
+  - **Description**: Returns all catalog products. Publicly viewable.
 
 * **`GET /products/{product_id}`**
   - **Handler**: `get_product()`
   - **Auth Required**: No (Public)
   - **Inputs**: Path parameter `product_id` (integer).
   - **Output**: `ProductResponse`
-  - **Description**: Retrieves detailed product details by ID. Raises `ProductNotFoundException` (404) if missing.
+  - **Description**: Retrieves a single product by ID. Raises `ProductNotFoundException` (404) if missing.
+
+* **`PUT /products/{product_id}`**
+  - **Handler**: `update_existing_product()`
+  - **Auth Required**: **Yes** (`Depends(require_role("admin"))`)
+  - **Inputs**: Path parameter `product_id` + JSON body `ProductUpdate` (all fields optional).
+  - **Output**: `ProductResponse` with updated values.
+  - **Description**: Partially or fully updates a product record. Fields not provided keep their existing database values. Raises `ProductNotFoundException` (404) if missing.
 
 * **`DELETE /products/{product_id}`**
   - **Handler**: `delete_existing_product()`
   - **Auth Required**: **Yes** (`Depends(require_role("admin"))`)
   - **Inputs**: Path parameter `product_id` (integer).
-  - **Output**: JSON confirmation dict.
+  - **Output**: JSON `{"message": "Product deleted successfully"}`.
   - **Description**: Deletes a product catalog entry. Restricted to admin accounts only.
 
 ---

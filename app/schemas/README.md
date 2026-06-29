@@ -21,7 +21,7 @@ In modern backend architecture, the **Schema Layer** defines the strict contract
 The schema layer handles both ends of the request-response cycle, acting as a gateway and a filter:
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e293b', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#f8fafc', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#cbd5e1', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e293b', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#cbd5e1', 'actorBkg': '#f8fafc', 'actorBorder': '#cbd5e1', 'actorTextColor': '#1e293b', 'signalColor': '#4f46e5', 'signalTextColor': '#ffffff', 'noteBkgColor': '#fef08a', 'noteBorderColor': '#facc15', 'noteTextColor': '#713f12'}}}%%
 flowchart TD
     subgraph ClientReq [Client Request JSON]
         R1[username: 'alice']
@@ -63,9 +63,9 @@ flowchart TD
 ## 3. Files & Schema Definitions
 
 ### `product_schema.py`
-* **`ProductCreate`**: Input validator. Enforces `name` (3-100 characters), `price` (>0), and `cost_price` (>0).
-* **`ProductUpdate`**: Supports partial changes. All fields are marked as optional.
-* **`ProductResponse`**: Serializes output. Intentionally hides `cost_price` to protect business profit margins.
+* **`ProductCreate`**: Input schema for creating products. Enforces `name` (3–100 chars), `description` (10–1000 chars), `category` (3–100 chars), `price` (>0 float), `stock_quantity` (>=0 int), and `cost_price` (>0 float). All fields required.
+* **`ProductUpdate`**: Supports **partial updates** — every field is `Optional`, defaulting to `None`. The controller reads existing DB values for any `None` field, so clients can send only what they want to change.
+* **`ProductResponse`**: Serializes public output. Intentionally **excludes `cost_price`** to protect profit margins from clients.
 
 ---
 
@@ -77,10 +77,11 @@ flowchart TD
 ---
 
 ### `user_schema.py`
-* **`UserCreate`**: Enforces inputs required for registration: `username`, `email` (using Pydantic's `EmailStr` to validate email addresses), and plain-text `password`.
-* **`AdminRegisterRequest`**: Inherits from `UserCreate`, adding `admin_key` to authenticate administrative registration calls.
-* **`UserResponse`**: Safe profile representation returning `id`, `username`, `email`, `role`, and `is_active`. Excludes password fields entirely.
-* **`UserUpdate`**: Restricts profile updates to safe fields (`username`, `email`).
+* **`UserCreate`**: Registration input. Enforces `username` (3–50 chars), `email` (Pydantic `EmailStr` validated), `password` (6–100 chars plain text — hashed before DB storage).
+* **`AdminRegisterRequest`**: Inherits all `UserCreate` fields, adds `admin_key` (min 5 chars) for administrative registration gate-keeping.
+* **`UserResponse`**: Public profile output returning `id`, `username`, `email`, `role`, and `is_active`. Completely excludes `hashed_password` and `created_at`.
+* **`UserUpdate`**: Profile update input. Requires both `username` (3–50 chars) and `email` — neither is optional (both must be provided together).
+* **`ChangePasswordRequest`**: Password change input. Requires `old_password` (6–100 chars, current) and `new_password` (6–100 chars, desired). The controller bcrypt-verifies `old_password` before applying the change.
 
 ---
 

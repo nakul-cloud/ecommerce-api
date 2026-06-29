@@ -398,6 +398,7 @@ ecommerce-api/
 | **Phase 1** | Project structure, FastAPI setup, SQLite, Product CRUD, Schemas, Custom Exceptions | ✅ Done |
 | **Phase 2** | Order CRUD with stock deduction, Internal schemas, Request timing middleware, `OrderNotFoundException` | ✅ Done |
 | **Phase 3** | JWT stateless authentication (Bcrypt, token encoding/decoding), User & Admin registration, Role-Based Access Control (RBAC) | ✅ Done |
+| **Phase 3.5** | Database seeder — Faker-powered 100 users, 250 products, 1000 orders in one command | ✅ Done |
 | **Phase 4** | Product Update operation, Pagination for list endpoints | 🔜 Planned |
 | **Phase 5** | SQLAlchemy ORM, Repository pattern, Alembic migrations | 🔜 Planned |
 | **Phase 6** | Automated testing with pytest, Test fixtures | 🔜 Planned |
