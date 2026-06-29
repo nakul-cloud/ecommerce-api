@@ -18,6 +18,7 @@ app/
 ├── schemas/             Pydantic models for validation (public API, auth, and internal)
 ├── exceptions/          Custom exceptions and global error handlers
 ├── middleware/           Request/response interceptors (timing, CORS)
+├── seed/                Database seeders — generate realistic demo data in one command
 └── utils/               Shared helper functions and constants
 ```
 
@@ -79,6 +80,7 @@ Think of `app/` as a **hospital**:
 | `schemas/` | Intake forms — verify patient information |
 | `exceptions/` | Emergency protocols — handle when things go wrong |
 | `middleware/` | Security checkpoint at the main entrance |
+| `seed/` | Training simulator — loads the hospital with realistic demo patients and records |
 | `utils/` | Shared medical instruments |
 
 ## Best Practices

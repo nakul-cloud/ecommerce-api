@@ -52,6 +52,7 @@ The goal: build a backend that I can revisit after a year and understand the arc
 * **Environment Configuration** — Secrets (database paths, JWT keys, registration keys) loaded from `.env`, never hardcoded
 * **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box
 * **Database Auto-setup** — Tables created automatically on first startup
+* **Database Seeder** — One command (`python -m app.seed.seed_database`) populates 1 admin + 100 customers + 250 products + 1000 orders using `Faker`
 
 <br/>
 
@@ -106,6 +107,24 @@ uvicorn app.main:app --reload
 ```
 
 The API starts at **http://127.0.0.1:8000**
+
+<br/>
+
+### Seed Demo Data (Optional)
+
+Populate the database with realistic demo data in one command:
+
+```bash
+# Install faker first
+pip install faker
+
+# Run the seeder
+python -m app.seed.seed_database
+```
+
+This creates **1 admin + 100 customers + 250 products + 1000 orders**.
+
+**Default admin login:** `admin@example.com` / `admin123`
 
 <br/>
 
@@ -325,7 +344,9 @@ ecommerce-api/
 │   ├── controllers/              # Core business & transaction logic
 │   ├── schemas/                  # Pydantic input/output schemas
 │   ├── exceptions/               # Domain-specific exceptions & handlers
-│   └── middleware/               # HTTP timing interceptors
+│   ├── middleware/               # HTTP timing interceptors
+│   ├── seed/                     # DB seeder: 100 users, 250 products, 1000 orders
+│   └── utils/                    # Shared helper functions & constants
 ├── data/                         # SQLite binary database files
 └── tests/                        # Automated unit & integration tests
 ```
@@ -340,6 +361,7 @@ ecommerce-api/
 * 📂 **Pydantic Validation & Output Formatting Schemas** — [`app/schemas/README.md`](file:///d:/ecommerce-api/app/schemas/README.md)
 * 📂 **Custom Exceptions & Global Handlers** — [`app/exceptions/README.md`](file:///d:/ecommerce-api/app/exceptions/README.md)
 * 📂 **Timing & Logger Middleware** — [`app/middleware/README.md`](file:///d:/ecommerce-api/app/middleware/README.md)
+* 📂 **Database Seeder** — [`app/seed/README.md`](file:///d:/ecommerce-api/app/seed/README.md)
 * 📂 **Database Storage Files** — [`data/README.md`](file:///d:/ecommerce-api/data/README.md)
 * 📂 **Automated Test Suites** — [`tests/README.md`](file:///d:/ecommerce-api/tests/README.md)
 
@@ -361,6 +383,7 @@ ecommerce-api/
 | **python-dotenv** | Configuration | Loads secrets from `.env` so they never touch source code |
 | **passlib[bcrypt]** | Security | Standard password hashing library to secure credentials |
 | **python-jose** | Tokens | Python implementation of JOSE (JSON Object Signing and Encryption) to generate and verify JWTs |
+| **Faker** | Seeding | Generates realistic fake names, emails, and text for demo data |
 
 <br/>
 
