@@ -1,287 +1,263 @@
+from datetime import datetime
+
 from app.config.database import get_db_connection
 
 from app.schemas.order_schema import (
     OrderCreate,
-    OrderItem,
     OrderResponse,
+    OrderItemResponse,
 )
 
-from app.schemas.internal_schemas import ValidatedOrderItem
+from app.schemas.user_schema import UserResponse
+
+from app.schemas.internal_schemas import (
+    ValidatedOrderItem,
+)
 
 from app.exceptions.custom_exceptions import (
     ProductNotFoundException,
     ProductOutOfStockException,
-    OrderNotFoundException
+    OrderNotFoundException,
 )
 
 
-def create_order(order: OrderCreate) -> OrderResponse:
+def create_order(
+    order: OrderCreate,
+    current_user: UserResponse,
+) -> OrderResponse:
     """
-    Create a new customer order.
+    Create a new order for the currently authenticated user.
+
+    Workflow:
+    1. Validate every requested product.
+    2. Check product stock.
+    3. Calculate subtotal and total amount.
+    4. Create the order.
+    5. Insert order items.
+    6. Reduce product inventory.
+    7. Commit transaction.
+    8. Return the complete order response.
     """
 
+    # -------------------------------------------------
     # Create database connection
+    # -------------------------------------------------
     conn = get_db_connection()
-
-    # Create cursor
     cursor = conn.cursor()
 
-    # Store total order amount
+    # Running total for the order
     total_amount = 0.0
 
-    # Store validated products
+    # Store validated products before inserting
     validated_products: list[ValidatedOrderItem] = []
 
-    # -------------------------------------------------
-    # Validate products and calculate total amount
-    # -------------------------------------------------
-    for item in order.items:
+    try:
 
-        # Fetch product from database
+        # -------------------------------------------------
+        # Validate every product in the request
+        # -------------------------------------------------
+        for item in order.items:
+
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    price,
+                    stock_quantity
+                FROM products
+                WHERE id = ?
+                """,
+                (item.product_id,),
+            )
+
+            product = cursor.fetchone()
+
+            # Product does not exist
+            if product is None:
+                raise ProductNotFoundException(item.product_id)
+
+            # Product does not have enough stock
+            if product["stock_quantity"] < item.quantity:
+                raise ProductOutOfStockException(item.product_id)
+
+            # Calculate subtotal
+            subtotal = round(
+                product["price"] * item.quantity,
+                2,
+            )
+
+            # Add to running total
+            total_amount = round(
+                total_amount + subtotal,
+                2,
+            )
+
+            # Store validated product for later use
+            validated_products.append(
+                ValidatedOrderItem(
+                    product_id=product["id"],
+                    product_name=product["name"],
+                    quantity=item.quantity,
+                    unit_price=product["price"],
+                    subtotal=subtotal,
+                )
+            )
+
+        # -------------------------------------------------
+        # Create order
+        # -------------------------------------------------
+        cursor.execute(
+            """
+            INSERT INTO orders
+            (
+                user_id,
+                status,
+                total_amount
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                current_user.id,
+                "Pending",
+                total_amount,
+            ),
+        )
+
+        # Newly created order ID
+        order_id = cursor.lastrowid
+
+        # -------------------------------------------------
+        # Insert every order item
+        # -------------------------------------------------
+
+        for product in validated_products:
+
+            # Insert order item
+            cursor.execute(
+                """
+                INSERT INTO order_items
+                (
+                    order_id,
+                    product_id,
+                    quantity,
+                    unit_price
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    order_id,
+                    product.product_id,
+                    product.quantity,
+                    product.unit_price,
+                ),
+            )
+
+            # -------------------------------------------------
+            # Reduce stock safely
+            # -------------------------------------------------
+
+            cursor.execute(
+                """
+                UPDATE products
+                SET stock_quantity = stock_quantity - ?
+                WHERE id = ?
+                AND stock_quantity >= ?
+                """,
+                (
+                    product.quantity,
+                    product.product_id,
+                    product.quantity,
+                ),
+            )
+
+            # Make sure the update actually happened
+            if cursor.rowcount == 0:
+                raise ProductOutOfStockException(
+                    product.product_id
+                )
+        # -------------------------------------------------
+        # Save all changes
+        # -------------------------------------------------
+        conn.commit()
+
+        # -------------------------------------------------
+        # Fetch order metadata
+        # -------------------------------------------------
         cursor.execute(
             """
             SELECT
-                id,
-                price,
-                stock_quantity
-            FROM products
+                created_at,
+                status
+            FROM orders
             WHERE id = ?
             """,
-            (item.product_id,),
+            (order_id,),
         )
 
-        product = cursor.fetchone()
+        created_order = cursor.fetchone()
 
-        # Product does not exist
-        if product is None:
-            conn.close()
-            raise ProductNotFoundException(item.product_id)
+        # -------------------------------------------------
+        # Convert validated items into response objects
+        # -------------------------------------------------
+        response_items = []
 
-        # Check stock availability
-        if product["stock_quantity"] < item.quantity:
-            conn.close()
-            raise ProductOutOfStockException(item.product_id)
+        for product in validated_products:
 
-        # Calculate running total
-        total_amount += product["price"] * item.quantity
-
-        # Store validated product
-        validated_products.append(
-            ValidatedOrderItem(
-                product_id=item.product_id,
-                quantity=item.quantity,
-                unit_price=product["price"],
+            response_items.append(
+                OrderItemResponse(
+                    product_id=product.product_id,
+                    product_name=product.product_name,
+                    quantity=product.quantity,
+                    unit_price=product.unit_price,
+                    subtotal=product.subtotal,
+                )
             )
-        )
 
-    # -------------------------------------------------
-    # Create order
-    # -------------------------------------------------
-    cursor.execute(
-        """
-        INSERT INTO orders
-        (
-            total_amount
-        )
-        VALUES (?)
-        """,
-        (total_amount,),
-    )
-
-    # Get newly created order ID
-    order_id = cursor.lastrowid
-
-    # -------------------------------------------------
-    # Insert order items and update stock
-    # -------------------------------------------------
-    for product in validated_products:
-
-        # Insert order item
-        cursor.execute(
-            """
-            INSERT INTO order_items
-            (
-                order_id,
-                product_id,
-                quantity,
-                unit_price
-            )
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                order_id,
-                product.product_id,
-                product.quantity,
-                product.unit_price,
+        # -------------------------------------------------
+        # Return API response
+        # -------------------------------------------------
+        return OrderResponse(
+            id=order_id,
+            status=created_order["status"],
+            total_amount=total_amount,
+            created_at=datetime.fromisoformat(
+                created_order["created_at"]
             ),
-        )
-
-        # Update product stock
-        cursor.execute(
-            """
-            UPDATE products
-            SET stock_quantity = stock_quantity - ?
-            WHERE id = ?
-            """,
-            (
-                product.quantity,
-                product.product_id,
-            ),
+            items=response_items,
         )
 
     # -------------------------------------------------
-    # Commit transaction
+    # Rollback transaction if any error occurs
     # -------------------------------------------------
-    conn.commit()
-
-    # Close connection
-    conn.close()
+    except Exception:
+        conn.rollback()
+        raise
 
     # -------------------------------------------------
-    # Return response
+    # Always close database connection
     # -------------------------------------------------
-    return OrderResponse(
-        id=order_id,
-        total_amount=total_amount,
-        items=order.items,
-    )
+    finally:
+        conn.close()
 
-   # -------------------------------------------------
-   # Get all orders
-   # -------------------------------------------------
-   
+
+# -------------------------------------------------
+# Get All Orders
+# -------------------------------------------------
+
 def get_all_orders() -> list[OrderResponse]:
     """
-    Retrieve all orders from the database.
+    Get all orders.
     """
+    return []
 
-    # Create database connection
-    conn = get_db_connection()
 
-    # Create cursor
-    cursor = conn.cursor()
+# -------------------------------------------------
+# Get Order By ID
+# -------------------------------------------------
 
-    # Fetch all orders
-    cursor.execute(
-        """
-        SELECT
-            id,
-            total_amount
-        FROM orders
-        ORDER BY id
-        """
-    )
-
-    # Fetch all rows
-    orders = cursor.fetchall()
-
-    # Store API responses
-    order_responses = []
-
-    for order in orders:
-
-        # Fetch all items belonging to this order
-        cursor.execute(
-            """
-            SELECT
-                product_id,
-                quantity
-            FROM order_items
-            WHERE order_id = ?
-            """,
-            (order["id"],),
-        )
-
-        item_rows = cursor.fetchall()
-
-        # Convert database rows into OrderItem objects
-        items = [
-            OrderItem(
-                product_id=item["product_id"],
-                quantity=item["quantity"]
-            )
-            for item in item_rows
-        ]
-
-        # Add to response list
-        order_responses.append(
-            OrderResponse(
-                id=order["id"],
-                total_amount=order["total_amount"],
-                items=items,
-            )
-        )
-
-    # Close connection
-    conn.close()
-
-    return order_responses
-
-#-------------------------------------------------------------
-# Get Order by ID
-#-------------------------------------------------------------
-
-def get_order_by_id(order_id:int)-> OrderResponse:
+def get_order_by_id(order_id: int)-> OrderResponse:
     """
-    Retrieve a single order by its ID.
+    Get order by ID.
     """
-
-    conn = get_db_connection()
-    
-    cursor = conn.cursor()
-
-    # ---------------------------------------------
-    # Fetch the requested order
-    # ---------------------------------------------
-    cursor.execute(
-        """
-        SELECT
-            id,
-            total_amount
-        FROM orders
-        WHERE id = ?
-        """,
-        (order_id,),
-    )
-
-    order = cursor.fetchone()
-
-    # Order does not exist
-    if order is None:
-        conn.close()
-        raise OrderNotFoundException(order_id)
-
-    # ---------------------------------------------
-    # Fetch all items belonging to this order
-    # ---------------------------------------------
-    cursor.execute(
-        """
-        SELECT
-            product_id,
-            quantity
-        FROM order_items
-        WHERE order_id = ?
-        """,
-        (order_id,),
-    )
-
-    item_rows = cursor.fetchall()
-
-    # Convert database rows into OrderItem objects
-    items = [
-        OrderItem(
-            product_id=item["product_id"],
-            quantity=item["quantity"],
-        )
-        for item in item_rows
-    ]
-
-    # Close connection
-    conn.close()
-
-    # Return API response
-    return OrderResponse(
-        id=order["id"],
-        total_amount=order["total_amount"],
-        items=items,
-    )
+    raise OrderNotFoundException(order_id)

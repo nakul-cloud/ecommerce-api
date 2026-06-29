@@ -5,6 +5,7 @@ from app.controllers.user_controller import (
     create_user,
     create_admin,
     update_current_user,
+    change_password,
 )
 
 from app.schemas.user_schema import (
@@ -12,6 +13,7 @@ from app.schemas.user_schema import (
     UserResponse,
     AdminRegisterRequest,
     UserUpdate,
+    ChangePasswordRequest,
 )
 
 router = APIRouter(
@@ -92,4 +94,28 @@ def update_my_profile(
     return update_current_user(
         current_user = current_user,
         user=user,
+    )
+
+# --------------------------------------------------
+# Change Password
+# --------------------------------------------------
+
+@router.put(
+    "/change-password",
+    status_code=status.HTTP_200_OK,
+    summary="Change current user password",
+)
+def change_my_password(
+    password_data: ChangePasswordRequest,
+    current_user: UserResponse = Depends(
+        get_current_user,
+    ),
+):
+    """
+    Change the password of the currently authenticated user.
+    """
+
+    return change_password(
+        current_user=current_user,
+        password_data=password_data,
     )

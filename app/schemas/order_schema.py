@@ -1,42 +1,125 @@
+from datetime import datetime
 from typing import List
-from pydantic import BaseModel,Field
+
+from pydantic import BaseModel, Field
 
 
-class OrderItem(BaseModel):
+# ==================================================
+# Order Item Create
+# ==================================================
+
+class OrderItemCreate(BaseModel):
     """
-    Represents a single product in an order
+    Represents a single product in an order.
     """
-    product_id:int=Field(
+
+    product_id: int = Field(
         ...,
         gt=0,
-        description="ID of the product"
+        description="Unique ID of the product.",
+        example=1,
     )
 
-    quantity:int=Field(
+    quantity: int = Field(
         ...,
         gt=0,
-        description="Quantity of the product"
+        description="Quantity of the product to order.",
+        example=2,
     )
-'''
-Because an order contains multiple order items, we use a nested List[OrderItem]
- so FastAPI validates the entire order request and every order item inside it.
-'''
+
+
+# ==================================================
+# Order Create
+# ==================================================
 
 class OrderCreate(BaseModel):
     """
-    Request schema for creating a new order
+    Request schema for creating a new order.
     """
-    items:List[OrderItem]=Field(
+
+    items: List[OrderItemCreate] = Field(
         ...,
         min_length=1,
-        description="List of products included in the order"
+        description="List of products included in the order.",
+        example=[
+            {
+                "product_id": 1,
+                "quantity": 2,
+            },
+            {
+                "product_id": 5,
+                "quantity": 1,
+            },
+        ],
     )
 
 
+# ==================================================
+# Order Item Response
+# ==================================================
+
+class OrderItemResponse(BaseModel):
+    """
+    Represents a single product returned in an order.
+    """
+
+    product_id: int = Field(
+        ...,
+        description="Product ID.",
+    )
+
+    product_name: str = Field(
+        ...,
+        description="Name of the product.",
+    )
+
+    quantity: int = Field(
+        ...,
+        description="Quantity ordered.",
+    )
+
+    unit_price: float = Field(
+        ...,
+        description="Price per unit at the time of purchase.",
+    )
+
+    subtotal: float = Field(
+        ...,
+        description="Subtotal for this order item.",
+    )
+
+
+# ==================================================
+# Order Response
+# ==================================================
+
 class OrderResponse(BaseModel):
     """
-    Public schema returned after an order is created or retrieved
+    Public schema returned after an order is created or retrieved.
     """
-    id:int
-    total_amount:float
-    items:List[OrderItem]
+
+    id: int = Field(
+        ...,
+        description="Unique order ID.",
+    )
+
+    status: str = Field(
+        ...,
+        description="Current status of the order.",
+        example="Pending",
+    )
+
+    total_amount: float = Field(
+        ...,
+        description="Total amount of the order.",
+    )
+
+    created_at: datetime = Field(
+        ...,
+        description="Timestamp when the order was created.",
+    )
+
+    items: List[OrderItemResponse] = Field(
+        ...,
+        description="List of products included in the order.",
+    )

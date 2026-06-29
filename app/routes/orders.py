@@ -1,6 +1,11 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, status
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import (
+    get_current_user,
+    require_role,
+)
 
 from app.controllers.order_controller import (
     create_order,
@@ -23,46 +28,52 @@ router = APIRouter(
 
 
 # --------------------------------------------------
-# Create Order (Authenticated Users)
+# Create Order (Authenticated User)
 # --------------------------------------------------
+
 @router.post(
     "",
     response_model=OrderResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new order",
 )
 def create_new_order(
     order: OrderCreate,
     current_user: UserResponse = Depends(get_current_user),
 ):
     """
-    Create a new customer order.
-    Requires authentication.
+    Create a new order for the currently authenticated user.
     """
-    return create_order(order)
+    return create_order(
+        order=order,
+        current_user=current_user,
+    )
 
 
 # --------------------------------------------------
-# Get All Orders (Authenticated Users)
+# Get All Orders (Admin Only)
 # --------------------------------------------------
+
 @router.get(
     "",
-    response_model=list[OrderResponse],
+    response_model=List[OrderResponse],
     status_code=status.HTTP_200_OK,
 )
 def get_orders(
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(
+        require_role("admin")
+    ),
 ):
     """
     Retrieve all orders.
-    Requires authentication.
+    Admin only.
     """
     return get_all_orders()
 
 
 # --------------------------------------------------
-# Get Order By ID (Authenticated Users)
+# Get Order By ID
 # --------------------------------------------------
+
 @router.get(
     "/{order_id}",
     response_model=OrderResponse,
@@ -74,6 +85,5 @@ def get_order(
 ):
     """
     Retrieve a single order by its ID.
-    Requires authentication.
     """
     return get_order_by_id(order_id)

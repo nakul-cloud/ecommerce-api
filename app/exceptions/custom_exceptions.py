@@ -64,3 +64,11 @@ class PermissionDeniedException(Exception):
         self.message = "You do not have permission to perform this action."
 
         super().__init__(self.message)
+    
+class InvalidPasswordException(Exception):
+    """
+    Raised when the current password is incorrect.
+    """
+    def __init__(self):
+        self.message = "current password is incorrect"
+        super().__init__(self.message)

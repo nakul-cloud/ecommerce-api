@@ -7,6 +7,7 @@ from app.exceptions.custom_exceptions import(
     InvalidTokenException,
     InvalidCredentialsException,
     PermissionDeniedException,
+    InvalidPasswordException,
 )      
 
 def register_exception_handlers(app:FastAPI):
@@ -91,6 +92,14 @@ def register_exception_handlers(app:FastAPI):
             status_code=status.HTTP_403_FORBIDDEN,
             content={
                 "status": "error",
+                "message": exc.message,
+            },
+        )
+    @app.exception_handler(InvalidPasswordException)
+    async def invalid_password_handler(request,exc):
+        return JSONResponse(
+            status_code=400,
+            content={
                 "message": exc.message,
             },
         )
