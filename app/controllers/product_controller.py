@@ -171,3 +171,119 @@ def delete_product(product_id:int) -> dict:
         "message": "Product delected successfully"
     }
     
+
+def update_product(
+        product_id:int,
+        product:ProductUpdate,
+    ) -> ProductResponse:
+        """
+        Update an existing product.
+        """
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor()
+
+        # ----------------------------------------
+        # Check if product exists
+        # ----------------------------------------
+
+        cursor.execute(
+            """
+            SELECT *
+            FROM products
+            WHERE id = ?
+            """,
+            (product_id,),
+        )
+
+        existing_product = cursor.fetchone()
+
+        if existing_product is None:
+            conn.close()
+            raise ProductNotFoundException(product_id)
+
+
+        #  -------------------------------------------------------
+        # Use existing values if a field is not provided 
+        # ---------------------------------------------------------
+
+        updated_name = (
+            product.name
+            if product.name is not None
+            else existing_product["name"]
+        )
+
+        updated_description =(
+            product.description
+            if product.description is not None
+            else existing_product["description"]
+        )
+
+        updated_category =(
+            product.category
+            if product.category is not None
+            else existing_product["category"]
+        )
+
+        updated_price = (
+            product.price
+            if product.price is not None
+            else existing_product["price"]
+        )
+
+        updated_stock = (
+            product.stock_quantity
+            if product.stock_quantity is not None
+            else existing_product["stock_quantity"]
+        )
+        
+        updated_cost_price = (
+            product.cost_price
+            if product.cost_price is not None
+            else existing_product["cost_price"]
+        )
+
+        # -----------------------------------------------------------
+        # Update product 
+        # -----------------------------------------------------------
+
+
+        cursor.execute(
+            """
+            UPDATE products
+            SET
+                name = ?,
+                description = ?,
+                category = ?,
+                price = ?,
+                stock_quantity = ?,
+                cost_price = ?
+            WHERE id = ?
+            """,
+            (
+                updated_name,
+                updated_description,
+                updated_category,
+                updated_price,
+                updated_stock,
+                updated_cost_price,
+                product_id,
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+
+        # -----------------------------------------------------
+        # Return updated Product 
+        # ---------------------------------------------------
+
+        return ProductResponse(
+            id = product_id,
+            name = updated_name,
+            description = updated_description,
+            category = updated_category,
+            price = updated_price,
+            stock_quantity = updated_stock,
+        )

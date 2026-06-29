@@ -1,14 +1,17 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status,Depends
+from app.auth.dependencies import get_current_user
 
 from app.controllers.user_controller import (
     create_user,
     create_admin,
+    update_current_user,
 )
 
 from app.schemas.user_schema import (
     UserCreate,
     UserResponse,
     AdminRegisterRequest,
+    UserUpdate,
 )
 
 router = APIRouter(
@@ -47,3 +50,46 @@ def register_admin(admin: AdminRegisterRequest):
     Requires a valid admin registration key.
     """
     return create_admin(admin)
+
+
+# -----------------------------------------------
+# Get Users Profiles
+# -----------------------------------------------
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get current user profile",
+)
+def get_my_profile(
+    current_user: UserResponse =Depends(get_current_user),
+
+):
+    """
+    Retrieve the profile of the currently authenticated user.
+    """
+    return current_user
+
+# --------------------------------------------------
+# Update Current User Profile 
+# --------------------------------------------------
+
+@router.put(
+    "/me",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update current user profile",
+)
+
+def update_my_profile(
+    user:UserUpdate,
+    current_user:UserResponse = Depends(get_current_user),
+):
+    """
+    Update the profile of the currently authenticated user.
+    """
+    return update_current_user(
+        current_user = current_user,
+        user=user,
+    )

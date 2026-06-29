@@ -1,4 +1,5 @@
-from pydantic import BaseModel,EmailStr
+from app.schemas import order_schema
+from pydantic import BaseModel,EmailStr,Field 
 
 class UserCreate(BaseModel):
     """
@@ -37,3 +38,19 @@ class AdminRegisterRequest(UserCreate):
     """
 
     admin_key: str
+
+class UserUpdate(BaseModel):
+    """
+    Schema used for updating the current user's profile.
+    """
+    username:str = Field(
+        ...,
+        min_length=3,
+        max_length=50,
+        description="Username",
+    )
+
+    email:EmailStr = Field(
+        ...,
+        description="User email address"
+    )

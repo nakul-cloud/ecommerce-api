@@ -2,20 +2,19 @@ from typing import List
 
 from fastapi import APIRouter, Depends, status
 
-from app.auth.dependencies import (
-    get_current_user,
-    require_role,
-)
+from app.auth.dependencies import require_role
 
 from app.controllers.product_controller import (
     create_product,
     get_all_products,
     get_product_by_id,
+    update_product,
     delete_product,
 )
 
 from app.schemas.product_schema import (
     ProductCreate,
+    ProductUpdate,
     ProductResponse,
 )
 
@@ -79,6 +78,32 @@ def get_product(
     Retrieve a single product by its ID.
     """
     return get_product_by_id(product_id)
+
+
+# --------------------------------------------------
+# Update Product (Admin Only)
+# --------------------------------------------------
+@router.put(
+    "/{product_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update an existing product",
+)
+def update_existing_product(
+    product_id: int,
+    product: ProductUpdate,
+    current_user: UserResponse = Depends(
+        require_role("admin")
+    ),
+):
+    """
+    Update an existing product.
+    Admin only.
+    """
+    return update_product(
+        product_id=product_id,
+        product=product,
+    )
 
 
 # --------------------------------------------------

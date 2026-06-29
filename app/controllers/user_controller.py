@@ -3,6 +3,7 @@ from app.config.settings import ADMIN_REGISTRATION_KEY
 
 from app.schemas.user_schema import (
     UserCreate,
+    UserUpdate,
     UserResponse,
     AdminRegisterRequest,
 )
@@ -105,4 +106,56 @@ def create_admin(admin: AdminRegisterRequest) -> UserResponse:
         email=admin.email,
         role="admin",
         is_active=True,
+    )
+
+# --------------------------------------------------------
+# update the users 
+# --------------------------------------------------------
+
+def update_current_user(
+    current_user: UserResponse,
+    user: UserUpdate,
+) -> UserResponse:
+    """
+    Update the profile of the currently authenticated user.
+    """
+
+    # Create database connection
+    conn = get_db_connection()
+
+    # Create cursor
+    cursor = conn.cursor()
+
+    # --------------------------------------------------
+    # Update current user
+    # --------------------------------------------------
+    cursor.execute(
+        """
+        UPDATE users
+        SET
+            username = ?,
+            email = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (
+            user.username,
+            user.email,
+            current_user.id,
+        ),
+    )
+
+    conn.commit()
+
+    conn.close()
+
+    # --------------------------------------------------
+    # Return updated user
+    # --------------------------------------------------
+    return UserResponse(
+        id=current_user.id,
+        username=user.username,
+        email=user.email,
+        role=current_user.role,
+        is_active=current_user.is_active,
     )
