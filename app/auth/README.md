@@ -24,15 +24,15 @@ By separating security from routes and controllers:
 sequenceDiagram
     autonumber
     actor Client
-    participant Router as app/routes/auth.py
+    participant Router as app/routes/auth_routes.py
     participant Controller as app/controllers/auth_controller.py
     participant DB as SQLite DB
     participant Pass as password.py (bcrypt)
     participant JWT as jwt_handler.py
 
-    Client->>Router: POST /auth/login (username & password)
+    Client->>Router: POST /api/v1/auth/login (username & password)
     activate Router
-    Router->>Controller: login_user(form_data)
+    Router->>Controller: login(form_data)
     activate Controller
     Controller->>DB: SELECT password hash for email
     activate DB
@@ -44,10 +44,10 @@ sequenceDiagram
     deactivate Pass
     Controller->>JWT: create_access_token(data)
     activate JWT
-    Note over JWT: Inject expiration time & encode using SECRET_KEY
+    Note over JWT: Forwards to app.utils.jwt to encode using PyJWT
     JWT-->>Controller: Return JWT string
     deactivate JWT
-    Controller-->>Router: Return TokenResponse (access_token)
+    Controller-->>Router: Return TokenResponse (access_token, token_type)
     deactivate Controller
     Router-->>Client: HTTP 200 OK + JWT Access Token
     deactivate Router
@@ -65,14 +65,14 @@ sequenceDiagram
     participant JWT as jwt_handler.py (verify_access_token)
     participant DB as SQLite DB
 
-    Client->>Router: GET /orders (Headers: Authorization: Bearer <JWT>)
+    Client->>Router: GET /api/v1/orders (Headers: Authorization: Bearer <JWT>)
     activate Router
     Router->>Dep: Depends(get_current_user)
     activate Dep
     Dep->>JWT: verify_access_token(token)
     activate JWT
-    Note over JWT: Validate signature & expiration
-    JWT-->>Dep: Decoded payload (sub: email, role: role)
+    Note over JWT: Forwards to app.utils.jwt to decode and verify
+    JWT-->>Dep: Decoded payload (sub: email)
     deactivate JWT
     Dep->>DB: SELECT id, username, role, is_active WHERE email = ?
     activate DB
@@ -96,15 +96,15 @@ Uses `passlib` with the `bcrypt` hashing algorithm to securely store passwords.
 * `verify_password(plain_password: str, hashed_password: str) -> bool`: Hashes the incoming password with the stored salt and compares the resulting hashes.
 
 ### `jwt_handler.py`
-Handles token generation and verification using `python-jose`.
+Acts as a bridge handler to call our core JWT utility in `app.utils.jwt`.
 * `create_access_token(data: dict) -> str`: Generates a secure JSON Web Token, appending an expiration claim (`exp`) based on settings.
 * `verify_access_token(token: str) -> dict`: Validates the token's cryptographic signature and checks the expiration. Raises `InvalidTokenException` if invalid.
 
 ### `dependencies.py`
 Declares reusable security checkpoints:
-* `oauth2_scheme`: Points FastAPI to `/auth/login` for token requests.
+* `oauth2_scheme`: Points FastAPI to `/api/v1/auth/login` for token requests.
 * `get_current_user(token: str = Depends(oauth2_scheme)) -> UserResponse`: Extracts the JWT, validates it, fetches the user from the database, and injects the user context.
-* `require_role(required_role: str) -> Callable`: A parameterized dependency wrapper that checks if the authenticated user has the specified permission role (e.g. `Depends(require_role("admin"))`).
+* `require_role(*roles: str) -> Callable`: A parameterized dependency wrapper that checks if the authenticated user has any of the specified permission roles (e.g. `Depends(require_role("admin", "customer"))`).
 
 ---
 
@@ -135,7 +135,7 @@ Even if the token is cryptographically valid, a user's account might have been d
 ## 6. 30-Second Revision
 
 - **Bcrypt** is used for secure hashing of passwords.
-- **JWTs** carry claims (`sub`, `role`) and are signed using a `SECRET_KEY` with an expiration time.
+- **JWTs** carry claims (`sub`) and are signed using a `SECRET_KEY` with an expiration time via **PyJWT**.
 - **`get_current_user`** extracts the token, verifies it, checks if the user is active in SQLite, and yields user details.
-- **`require_role`** restricts access based on user role (e.g., `admin`).
+- **`require_role`** restricts access based on a list of allowed roles (e.g., `admin`).
 - Unauthenticated requests return `401 Unauthorized`. Lack of permissions returns `403 Forbidden`.

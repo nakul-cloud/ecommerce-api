@@ -1,8 +1,11 @@
 import traceback
-from fastapi import status
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.constants.status_codes import (
+    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
 from app.exceptions.custom_exceptions import AppException
 from app.utils.response import error_response
 
@@ -40,7 +43,7 @@ async def validation_exception_handler(request, exc: RequestValidationError):
 
     return error_response(
         message="Validation failed",
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
         errors=errors,
     )
 
@@ -64,5 +67,5 @@ async def global_exception_handler(request, exc: Exception):
 
     return error_response(
         message="An unexpected error occurred.",
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        status_code=HTTP_500_INTERNAL_SERVER_ERROR,
     )

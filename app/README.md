@@ -10,16 +10,17 @@ In professional backend engineering, you never put everything in one file. The `
 
 ```
 app/
-├── main.py              Entry point — creates the app, wires routers, registers handlers
-├── config/              Settings, database connection, and route dependencies
-├── auth/                User authentication, password hashing, and JWT utilities
-├── routes/              HTTP endpoint definitions (URL → handler mapping)
-├── controllers/         Business logic and database operations
-├── schemas/             Pydantic models for validation (public API, auth, and internal)
-├── exceptions/          Custom exceptions and global error handlers
-├── middleware/           Request/response interceptors (timing, CORS)
-├── seed/                Database seeders — generate realistic demo data in one command
-└── utils/               Shared helper functions and constants
+├── main.py              Entry point — lifespan configurations, CORS, GZip, rate-limiting
+├── config/              Settings validation (pydantic-settings), SQLite connections
+├── auth/                User authentication and role dependencies bridging
+├── routes/              Thin HTTP route mappings (URL → controller delegation)
+├── controllers/         Static class orchestrators matching REST patterns
+├── services/            Database query execution and SQLite transaction controls
+├── schemas/             Data schemas & validation (casing/whitespace trimming)
+├── exceptions/          Unified exceptions & global handler interceptors
+├── middleware/          Modular timing, security headers, and rate limiting files
+├── seed/                Database seeders
+└── utils/               Shared utility files (PyJWT, logger, responses, validators)
 ```
 
 ## Request Flow
@@ -33,8 +34,10 @@ flowchart LR
     Middleware --> Route[Route]
     Route --> Schema[Schema]
     Schema --> Controller[Controller]
-    Controller --> DB[(Database)]
-    DB --> Controller
+    Controller --> Service[Service]
+    Service --> DB[(Database)]
+    DB --> Service
+    Service --> Controller
     Controller --> Schema
     Schema --> Route
     Route --> Middleware
@@ -44,27 +47,28 @@ flowchart LR
     style Route fill:#4f46e5,stroke:#3730a3,color:#ffffff
     style Schema fill:#4f46e5,stroke:#3730a3,color:#ffffff
     style Controller fill:#4f46e5,stroke:#3730a3,color:#ffffff
+    style Service fill:#f59e0b,stroke:#d97706,color:#ffffff
 ```
 
-If a business error occurs (e.g. product not found), the controller raises a custom exception. The global exception handler intercepts it and returns a clean JSON error response.
+If an error occurs (e.g. product not found or out of stock), the service raises a custom exception. The global exception handler intercepts it and returns a clean JSON error response, stopping execution safely.
 
 ## Files
 
 ### `__init__.py`
 
-Makes `app/` a Python package. Without this file, `from app.config.settings import APP_NAME` would fail with `ModuleNotFoundError`. It's empty, but essential.
+Makes `app/` a Python package. Without this file, imports would fail with `ModuleNotFoundError`. It's empty, but essential.
 
 ### `main.py`
 
 The wiring diagram of the entire application. It does four things:
 
-1. Creates the FastAPI instance with settings from `.env`
-2. Registers global exception handlers
-3. Creates database tables on startup
-4. Connects route modules to the app
+1. Creates the FastAPI instance with validated settings.
+2. Registers global exception handlers.
+3. Sets up lifespans checking database status on startup.
+4. Mounts GZip, CORS, SlowAPI rate limiting, and secure response headers.
+5. Connects route modules to the app.
 
-> [!TIP]
-> `main.py` should stay short. If it's longer than 50 lines, logic that belongs in a controller or middleware has leaked in.
+---
 
 ## Real-World Analogy
 
@@ -73,32 +77,27 @@ Think of `app/` as a **hospital**:
 | Folder | Hospital Equivalent |
 |---|---|
 | `main.py` | The building itself |
-| `config/` | Power supply and medical records database |
-| `auth/` | ID badges and security clearances — verifies who can access which wards |
+| `config/` | Power supply and medical records database config |
+| `auth/` | ID badges and security clearances |
 | `routes/` | Reception desk — directs patients |
-| `controllers/` | Doctors — diagnose and treat |
+| `controllers/` | Head Nurse — coordinates operations and packs files |
+| `services/` | Surgeons / Doctors — execute queries and modify records |
 | `schemas/` | Intake forms — verify patient information |
 | `exceptions/` | Emergency protocols — handle when things go wrong |
 | `middleware/` | Security checkpoint at the main entrance |
-| `seed/` | Training simulator — loads the hospital with realistic demo patients and records |
-| `utils/` | Shared medical instruments |
+| `seed/` | Training simulator — loads the database with realistic demo records |
+| `utils/` | Shared medical instruments (e.g. scalpels, thermometers) |
+
+---
 
 ## Best Practices
 
 **Do:**
-- Keep `main.py` minimal — wiring only
-- Import with full paths: `from app.config.settings import APP_NAME`
-- Create `__init__.py` in every sub-package
+- Keep `main.py` minimal — wiring only.
+- Import with full paths: `from app.config.settings import APP_NAME`.
+- Create `__init__.py` in every sub-package.
 
 **Don't:**
-- Put database queries in `main.py`
-- Put route decorators in controllers
-- Put business logic in schemas
-
-## 30-Second Revision
-
-- `app/` is the main Python package — all application code lives here
-- `main.py` creates the FastAPI app, registers handlers, connects routers
-- Each sub-package has one responsibility (Single Responsibility Principle)
-- `__init__.py` is empty but must exist for Python imports to work
-- Request flows: Client → Middleware → Route → Schema → Controller → Database → Response
+- Put database queries or transaction commits in controllers or routes.
+- Put route decorators in controllers.
+- Put business logic in schemas.

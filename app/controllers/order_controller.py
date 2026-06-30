@@ -1,5 +1,6 @@
 from fastapi.responses import JSONResponse
 
+from app.constants.status_codes import HTTP_201_CREATED
 from app.constants.messages import (
     ORDER_CREATED,
     ORDER_FETCHED,
@@ -24,7 +25,7 @@ class OrderController:
         return success_response(
             message=ORDER_CREATED,
             data=order_data,
-            status_code=201,
+            status_code=HTTP_201_CREATED,
         )
 
     @staticmethod

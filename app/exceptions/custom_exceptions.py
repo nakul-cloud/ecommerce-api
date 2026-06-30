@@ -1,9 +1,19 @@
+from app.constants.status_codes import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_403_FORBIDDEN,
+    HTTP_404_NOT_FOUND,
+    HTTP_409_CONFLICT,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
+
+
 class AppException(Exception):
     """
     Base exception class for all application-specific errors.
     """
 
-    def __init__(self, message: str, status_code: int = 500, errors: list = None):
+    def __init__(self, message: str, status_code: int = HTTP_500_INTERNAL_SERVER_ERROR, errors: list = None):
         self.message = message
         self.status_code = status_code
         self.errors = errors or []
@@ -16,7 +26,7 @@ class BadRequestException(AppException):
     """
 
     def __init__(self, message: str = "Bad request", errors: list = None):
-        super().__init__(message, status_code=400, errors=errors)
+        super().__init__(message, status_code=HTTP_400_BAD_REQUEST, errors=errors)
 
 
 class UnauthorizedException(AppException):
@@ -25,7 +35,7 @@ class UnauthorizedException(AppException):
     """
 
     def __init__(self, message: str = "Unauthorized", errors: list = None):
-        super().__init__(message, status_code=401, errors=errors)
+        super().__init__(message, status_code=HTTP_401_UNAUTHORIZED, errors=errors)
 
 
 class ForbiddenException(AppException):
@@ -34,7 +44,7 @@ class ForbiddenException(AppException):
     """
 
     def __init__(self, message: str = "Forbidden", errors: list = None):
-        super().__init__(message, status_code=403, errors=errors)
+        super().__init__(message, status_code=HTTP_403_FORBIDDEN, errors=errors)
 
 
 class NotFoundException(AppException):
@@ -43,7 +53,7 @@ class NotFoundException(AppException):
     """
 
     def __init__(self, message: str = "Resource not found", errors: list = None):
-        super().__init__(message, status_code=404, errors=errors)
+        super().__init__(message, status_code=HTTP_404_NOT_FOUND, errors=errors)
 
 
 class ConflictException(AppException):
@@ -52,7 +62,7 @@ class ConflictException(AppException):
     """
 
     def __init__(self, message: str = "Conflict", errors: list = None):
-        super().__init__(message, status_code=409, errors=errors)
+        super().__init__(message, status_code=HTTP_409_CONFLICT, errors=errors)
 
 
 # ==================================================

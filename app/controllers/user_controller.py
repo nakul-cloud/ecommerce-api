@@ -1,5 +1,6 @@
 from fastapi.responses import JSONResponse
 
+from app.constants.status_codes import HTTP_201_CREATED
 from app.constants.messages import (
     ADMIN_REGISTERED,
     PASSWORD_CHANGED,
@@ -28,7 +29,7 @@ class UserController:
         return success_response(
             message=USER_REGISTERED,
             data=user_data,
-            status_code=201,
+            status_code=HTTP_201_CREATED,
         )
 
     @staticmethod
@@ -40,7 +41,7 @@ class UserController:
         return success_response(
             message=ADMIN_REGISTERED,
             data=user_data,
-            status_code=201,
+            status_code=HTTP_201_CREATED,
         )
 
     @staticmethod

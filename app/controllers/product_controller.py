@@ -1,5 +1,6 @@
 from fastapi.responses import JSONResponse
 
+from app.constants.status_codes import HTTP_201_CREATED
 from app.constants.messages import (
     PRODUCT_CREATED,
     PRODUCT_DELETED,
@@ -22,7 +23,7 @@ class ProductController:
         return success_response(
             message=PRODUCT_CREATED,
             data=product_data,
-            status_code=201,
+            status_code=HTTP_201_CREATED,
         )
 
     @staticmethod

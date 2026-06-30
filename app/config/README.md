@@ -24,15 +24,15 @@ The configuration layer bootstraps settings on startup and supplies connections 
 flowchart TD
     subgraph StartupBoot [1. Application Startup]
         direction TB
-        S1[.env File] -->|Loads variables| S2[config/settings.py]
-        S2 -->|Exposes constants| S3[app/main.py]
+        S1[.env File] -->|Loads variables| S2[config/settings.py Settings Class]
+        S2 -->|Exposes settings instance| S3[app/main.py Lifespan Hook]
         S3 -->|Triggers| S4[config/database.py: create_tables]
         S4 -->|Initializes SQLite| S5[(ecommerce.db)]
     end
 
     subgraph ConnectionReq [2. Active Controller Request]
         direction TB
-        R1[Controller Call] -->|Open| R2[config/database.py: get_db_connection]
+        R1[Service Call] -->|Open| R2[config/database.py: get_db_connection]
         R2 -->|Applies Row factory| R3[sqlite3.Row Object]
         R3 -->|Executes query| R4[(ecommerce.db)]
         R4 -->|Returns Rows| R3
@@ -48,103 +48,54 @@ flowchart TD
 ## 3. Files & Specifications
 
 ### `settings.py`
-Leverages `python-dotenv` to parse environment variables from the `.env` file, supplying them with safe default fallbacks if missing:
-* **`APP_NAME`** (Default: `"E-Commerce API"`): Swagger and ReDoc application title.
-* **`APP_VERSION`** (Default: `"1.0.0"`): API build version.
-* **`DATABASE_PATH`** (Default: `"data/ecommerce.db"`): SQLite database location.
-* **`SECRET_KEY`**: Cryptographic key used by `python-jose` to sign JWT access tokens. Must remain highly secure.
-* **`ALGORITHM`**: Cryptographic algorithm (default: `"HS256"`) used for JWT signatures.
-* **`ACCESS_TOKEN_EXPIRE_MINUTES`** (Default: `30`): Lifetime duration of access tokens.
-* **`ADMIN_REGISTRATION_KEY`**: Required key that must match the payload when registering new administrator accounts.
+Leverages `pydantic-settings` to declare and validate type-safe settings:
+* **`env`** (Default: `"development"`): Application environment profile.
+* **`allowed_origins`** (Default: `"*"`): Allowed origins list for CORS middleware.
+* **`app_name`** (Default: `"E-Commerce API"`): Swagger and ReDoc application title.
+* **`app_version`** (Default: `"1.0.0"`): API build version.
+* **`database_path`** (Default: `"data/ecommerce.db"`): SQLite database location.
+* **`secret_key`**: Cryptographic key used by `PyJWT` to sign JWT access tokens. Must remain highly secure.
+* **`algorithm`** (Default: `"HS256"`): Cryptographic algorithm used for JWT signatures.
+* **`access_token_expire_minutes`** (Default: `30`): Lifetime duration of access tokens.
+* **`admin_registration_key`**: Required key that must match the payload when registering new administrator accounts.
+* **`port`** (Default: `8000`): Port number for binding the uvicorn network server.
 
 ---
 
 ### `database.py`
 Manages database client connections and schema creations:
 * **`get_db_connection() -> sqlite3.Connection`**:
-  - Opens a connection to the SQLite database file at `DATABASE_PATH`.
-  - Sets `conn.row_factory = sqlite3.Row` — columns are accessed by name (`row["price"]`) rather than integer index (`row[4]`).
-  - Sets `check_same_thread=False` to allow FastAPI's concurrent worker threads to share connections.
+  - Opens a connection to the SQLite database file at `database_path`.
+  - Sets `conn.row_factory = sqlite3.Row` — columns are accessed by name (`row["price"]`) rather than integer index.
+  - Sets `check_same_thread=False` to allow FastAPI's concurrent worker threads to share connections safely.
   - Enables `PRAGMA foreign_keys = ON` to enforce referential integrity between tables.
+  - Logs connection initialization metrics using the unified `logger` utility.
 * **`create_tables()`**:
-  - Called at application startup via `@app.on_event("startup")` in `main.py`.
+  - Called at application startup via the ASGI `lifespan` context manager in `main.py`.
   - Creates all four tables using `CREATE TABLE IF NOT EXISTS` so restarts never reset data.
-
-**Full Database Schema:**
-
-| Table | Column | Type | Constraints |
-|---|---|---|---|
-| `products` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
-| | `name` | `TEXT` | `NOT NULL` |
-| | `description` | `TEXT` | — |
-| | `category` | `TEXT` | `NOT NULL` |
-| | `price` | `REAL` | `NOT NULL` |
-| | `stock_quantity` | `INTEGER` | `NOT NULL`, `CHECK >= 0` |
-| | `cost_price` | `REAL` | `NOT NULL` |
-| | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
-| `users` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
-| | `username` | `TEXT` | `NOT NULL UNIQUE` |
-| | `email` | `TEXT` | `NOT NULL UNIQUE` |
-| | `hashed_password` | `TEXT` | `NOT NULL` |
-| | `role` | `TEXT` | `NOT NULL DEFAULT 'customer'` |
-| | `is_active` | `BOOLEAN` | `NOT NULL DEFAULT 1` |
-| | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
-| | `updated_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
-| `orders` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
-| | `user_id` | `INTEGER` | `NOT NULL`, `FK -> users(id)` |
-| | `status` | `TEXT` | `NOT NULL DEFAULT 'Pending'` |
-| | `total_amount` | `REAL` | `NOT NULL` |
-| | `created_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
-| | `updated_at` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` |
-| `order_items` | `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` |
-| | `order_id` | `INTEGER` | `NOT NULL`, `FK -> orders(id)` |
-| | `product_id` | `INTEGER` | `NOT NULL`, `FK -> products(id)` |
-| | `quantity` | `INTEGER` | `NOT NULL` |
-| | `unit_price` | `REAL` | `NOT NULL` |
 
 ---
 
-## 4. Key Design Patterns: SQLite Multi-Threading & Concurrency
+## 4. Key Design Patterns: SQLite Concurrency
 
-By default, the Python `sqlite3` driver restricts connection usage to the specific thread that created it. 
-
-### Why do we configure `check_same_thread=False`?
-FastAPI is an asynchronous ASGI framework. It handles incoming requests concurrently using a pool of worker threads. If a request is received, thread A might open a connection. However, during execution context switching, thread B might attempt to read or close that connection.
-* If `check_same_thread` is `True` (default), SQLite immediately raises a `ProgrammingError` warning.
-* Setting it to `False` enables threads to share connection objects.
-
-> [!CAUTION]
-> While `check_same_thread=False` allows multi-threaded connection handling, it places database write concurrency safety on the application code. SQLite does not support highly concurrent writes. Multiple write operations can cause database locking, which is why we must keep our transaction blocks short, run `conn.commit()` immediately, and close connections inside `finally` blocks.
+FastAPI is an asynchronous ASGI framework. It handles incoming requests concurrently using a pool of worker threads. If a request is received, thread A might open a connection. However, thread B might attempt to read or close that connection.
+* Setting `check_same_thread=False` enables threads to share connection objects.
+* Because SQLite does not support concurrent write transactions, multiple write operations can cause database locking. We prevent locks by keeping our transaction blocks short, running `conn.commit()` immediately, and wrapping connections in `try/finally` blocks inside services.
 
 ---
 
 ## 5. Real-World Analogy
 
 Think of the config layer as the **Infrastructure Control Room in a factory**:
-- `settings.py` is the control panel. It specifies target temperatures, voltage inputs, and security keys. If you want to change the voltage, you modify the control panel dashboard settings (`.env`), not the factory machinery.
-- `database.py` is the main plumbing pipeline. It connects the machinery to the underground storage tank (database file). It ensures water flows with the correct pressure (row factories) and establishes safety switches (threading options) so pipelines don't burst when multiple machines draw water concurrently.
+- `settings.py` is the control panel. It specifies target temperatures, voltage inputs, and security keys. If you want to change the settings, you modify the control panel dashboard settings (`.env`), not the factory machinery.
+- `database.py` is the main plumbing pipeline. It connects the machinery to the underground storage tank (database file). It ensures water flows with the correct pressure (row factories) and establishes safety switches so pipelines don't burst when multiple machines draw water concurrently.
 
 ---
 
-## 6. Interview Questions & Design Takeaways
-
-### 1. Why use `.env` files instead of hardcoding parameters?
-Hardcoding sensitive variables (such as `SECRET_KEY` or API keys) in source files exposes credentials to anyone who has access to the Git repository. If the repository is ever pushed to a public host (like GitHub), credentials are leaked. Using `.env` keeps secrets separate from code. Furthermore, using `.env` files lets developers swap from a local development database (`data/ecommerce.db`) to a staging database by simply editing their local config file.
-
-### 2. What are the limitations of `CREATE TABLE IF NOT EXISTS`?
-`CREATE TABLE IF NOT EXISTS` only creates a table if no table with that name exists. If the table already exists, SQLite **silently ignores** the statement. If you add a new column to your schema definition (e.g. adding `role` to `users`), SQLite will not update the existing table on startup, resulting in `OperationalError: table has no column named role` when queries run.
-* **Development fix**: Delete the SQLite database file (`data/ecommerce.db`) and restart the server, which recreates the tables with the updated schema.
-* **Production fix**: Use migration tools (like Alembic) to apply database changes incrementally.
-
-### 3. What is `sqlite3.Row` and why is it preferred over tuple results?
-By default, SQLite queries return tuples (e.g. `("Keyboard", 45.0, 10)`). To access the price, you must write `row[1]`. If you ever add a column in the middle of your table schema, all your index numbers shift, breaking code. `sqlite3.Row` maps database rows into dict-like interfaces, enabling access by column name (`row["price"]`), which makes code readable and resilient to schema changes.
-
----
-
-## 7. 30-Second Revision
+## 6. 30-Second Revision
 
 - **Config Layer** centralizes environment variables and database clients.
-- **`.env` files** isolate secrets (like keys) from source code, preventing security leaks.
+- **`pydantic-settings`** provides type-safe schema validation for all parameters.
 - **`check_same_thread=False`** allows FastAPI's multi-threaded handlers to share connection objects.
 - **`sqlite3.Row`** enables dictionary-style column access (`row["column_name"]`), preventing index shift bugs.
-- **Table Initialization** runs on startup in `main.py` to bootstrap tables if missing.
+- **Lifespan Hook** runs on startup in `main.py` to bootstrap tables if missing.

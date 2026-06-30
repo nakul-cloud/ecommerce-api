@@ -82,13 +82,16 @@ def get_current_user(
 
 
 
-def require_role(required_role: str):
+def require_role(*roles: str):
+    """
+    Restrict routes to specific roles.
+    """
 
     def role_checker(
         current_user: UserResponse = Depends(get_current_user),
     ):
 
-        if current_user.role != required_role:
+        if current_user.role not in roles:
             raise PermissionDeniedException()
 
         return current_user

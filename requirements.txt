@@ -32,3 +32,4 @@ pydantic-settings==2.14.2
 httpx==0.28.1
 slowapi==0.1.10
 secure==2.0.1
+pyjwt==2.13.0
