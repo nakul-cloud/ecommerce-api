@@ -1,4 +1,10 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+from app.utils.validators import (
+    strip_whitespace,
+    lowercase_email,
+    prevent_empty,
+    validate_password_strength,
+)
 
 
 # --------------------------------------------------
@@ -23,6 +29,21 @@ class UserCreate(BaseModel):
         min_length=6,
         max_length=100,
     )
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        return prevent_empty(strip_whitespace(v))
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        return lowercase_email(strip_whitespace(v))
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 # --------------------------------------------------
@@ -62,6 +83,16 @@ class UserUpdate(BaseModel):
         description="User email address",
     )
 
+    @field_validator("username", mode="before")
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        return prevent_empty(strip_whitespace(v))
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        return lowercase_email(strip_whitespace(v))
+
 
 # --------------------------------------------------
 # Register Admin
@@ -100,3 +131,8 @@ class ChangePasswordRequest(BaseModel):
         max_length=100,
         description="New password",
     )
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return validate_password_strength(v)

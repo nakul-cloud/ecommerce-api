@@ -1,25 +1,13 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, status
+from app.constants.roles import ADMIN
+from fastapi import APIRouter, Depends
 
 from app.auth.dependencies import (
     get_current_user,
     require_role,
 )
-
-from app.controllers.order_controller import (
-    create_order,
-    get_all_orders,
-    get_order_by_id,
-)
-
-from app.schemas.order_schema import (
-    OrderCreate,
-    OrderResponse,
-)
-
+from app.controllers.order_controller import OrderController
+from app.schemas.order_schema import OrderCreate
 from app.schemas.user_schema import UserResponse
-
 
 router = APIRouter(
     prefix="/orders",
@@ -30,20 +18,15 @@ router = APIRouter(
 # --------------------------------------------------
 # Create Order (Authenticated User)
 # --------------------------------------------------
-
-@router.post(
-    "",
-    response_model=OrderResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_new_order(
+@router.post("")
+def store(
     order: OrderCreate,
     current_user: UserResponse = Depends(get_current_user),
 ):
     """
     Create a new order for the currently authenticated user.
     """
-    return create_order(
+    return OrderController.store(
         order=order,
         current_user=current_user,
     )
@@ -52,38 +35,26 @@ def create_new_order(
 # --------------------------------------------------
 # Get All Orders (Admin Only)
 # --------------------------------------------------
-
-@router.get(
-    "",
-    response_model=List[OrderResponse],
-    status_code=status.HTTP_200_OK,
-)
-def get_orders(
-    current_user: UserResponse = Depends(
-        require_role("admin")
-    ),
+@router.get("")
+def index(
+    current_user: UserResponse = Depends(require_role(ADMIN)),
 ):
     """
     Retrieve all orders.
     Admin only.
     """
-    return get_all_orders()
+    return OrderController.index()
 
 
 # --------------------------------------------------
 # Get Order By ID
 # --------------------------------------------------
-
-@router.get(
-    "/{order_id}",
-    response_model=OrderResponse,
-    status_code=status.HTTP_200_OK,
-)
-def get_order(
+@router.get("/{order_id}")
+def show(
     order_id: int,
     current_user: UserResponse = Depends(get_current_user),
 ):
     """
     Retrieve a single order by its ID.
     """
-    return get_order_by_id(order_id)
+    return OrderController.show(order_id)

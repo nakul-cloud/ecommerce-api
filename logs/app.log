@@ -1,0 +1,162 @@
+[2026-06-30 17:11:58] INFO in main: Authenticating underlying relational database configurations...
+[2026-06-30 17:11:58] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:11:58] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:11:58] INFO in database: Database tables created successfully.
+[2026-06-30 17:11:58] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:11:58] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:11:58] INFO in main: Database connectivity verified successfully.
+[2026-06-30 17:11:58] INFO in main: Application initialized: E-Commerce API
+[2026-06-30 17:11:58] INFO in main: Environment Profile: development
+[2026-06-30 17:11:58] INFO in main: Binding network listeners onto port: 8000
+[2026-06-30 17:12:19] INFO in timing: GET / - 0.003946 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in timing: POST /api/v1/auth/login - 0.259679 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in timing: GET /api/v1/products - 0.010448 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in timing: GET /api/v1/products/1 - 0.002256 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in timing: POST /api/v1/products - 0.011322 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in timing: PUT /api/v1/products/258 - 0.009400 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in timing: DELETE /api/v1/products/258 - 0.009319 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:19] INFO in timing: GET /api/v1/products/258 - 0.002981 sec
+[2026-06-30 17:12:19] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:19] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in timing: POST /api/v1/users/register - 0.224600 sec
+[2026-06-30 17:12:20] INFO in timing: POST /api/v1/users/register - 0.002969 sec
+[2026-06-30 17:12:20] INFO in timing: GET /api/v1/non-existent-route - 0.000409 sec
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in timing: POST /api/v1/auth/login - 0.222168 sec
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in timing: GET /api/v1/users/me - 0.003128 sec
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in timing: POST /api/v1/orders - 0.012142 sec
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in timing: GET /api/v1/orders/1008 - 0.005799 sec
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:12:20] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:12:20] INFO in timing: GET /api/v1/orders - 0.204773 sec
+[2026-06-30 17:13:04] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:13:04] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:13:05] INFO in timing: POST /api/v1/auth/login - 0.270464 sec
+[2026-06-30 17:13:11] INFO in timing: POST /api/v1/orders - 0.005383 sec
+[2026-06-30 17:13:13] INFO in timing: POST /api/v1/orders - 0.001459 sec
+[2026-06-30 17:14:06] INFO in main: Commencing shutdown logic...
+[2026-06-30 17:14:06] INFO in main: Shutdown procedure complete.
+[2026-06-30 17:14:07] INFO in main: Authenticating underlying relational database configurations...
+[2026-06-30 17:14:07] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:07] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:07] INFO in database: Database tables created successfully.
+[2026-06-30 17:14:07] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:07] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:07] INFO in main: Database connectivity verified successfully.
+[2026-06-30 17:14:07] INFO in main: Application initialized: E-Commerce API
+[2026-06-30 17:14:07] INFO in main: Environment Profile: development
+[2026-06-30 17:14:07] INFO in main: Binding network listeners onto port: 8000
+[2026-06-30 17:14:12] INFO in main: Commencing shutdown logic...
+[2026-06-30 17:14:12] INFO in main: Shutdown procedure complete.
+[2026-06-30 17:14:13] INFO in main: Authenticating underlying relational database configurations...
+[2026-06-30 17:14:13] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:13] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:13] INFO in database: Database tables created successfully.
+[2026-06-30 17:14:13] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:13] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:13] INFO in main: Database connectivity verified successfully.
+[2026-06-30 17:14:13] INFO in main: Application initialized: E-Commerce API
+[2026-06-30 17:14:13] INFO in main: Environment Profile: development
+[2026-06-30 17:14:13] INFO in main: Binding network listeners onto port: 8000
+[2026-06-30 17:14:22] INFO in timing: GET / - 0.003693 sec
+[2026-06-30 17:14:22] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:22] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:22] INFO in timing: POST /api/v1/auth/login - 0.235489 sec
+[2026-06-30 17:14:22] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:22] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: GET /api/v1/products - 0.008027 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: GET /api/v1/products/1 - 0.002127 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: POST /api/v1/products - 0.012006 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: PUT /api/v1/products/259 - 0.009438 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: DELETE /api/v1/products/259 - 0.008555 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: GET /api/v1/products/259 - 0.002519 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: POST /api/v1/users/register - 0.215716 sec
+[2026-06-30 17:14:23] INFO in timing: POST /api/v1/users/register - 0.002542 sec
+[2026-06-30 17:14:23] INFO in timing: GET /api/v1/non-existent-route - 0.000277 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: POST /api/v1/auth/login - 0.213042 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: GET /api/v1/users/me - 0.002381 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: POST /api/v1/orders - 0.021063 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: GET /api/v1/orders/1009 - 0.004933 sec
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:14:23] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:14:23] INFO in timing: GET /api/v1/orders - 0.196702 sec
+[2026-06-30 17:15:18] INFO in timing: GET /docs - 0.000287 sec
+[2026-06-30 17:15:19] INFO in timing: GET /openapi.json - 0.072307 sec
+[2026-06-30 17:15:40] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:15:40] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:15:40] INFO in timing: POST /api/v1/auth/login - 0.267326 sec
+[2026-06-30 17:15:49] INFO in timing: POST /api/v1/orders - 0.002938 sec
+[2026-06-30 17:15:50] INFO in timing: POST /api/v1/orders - 0.001585 sec
+[2026-06-30 17:16:08] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:16:08] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:16:08] INFO in timing: POST /api/v1/auth/login - 0.214820 sec
+[2026-06-30 17:16:12] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:16:12] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:16:12] INFO in database: DATABASE_PATH: data/ecommerce.db
+[2026-06-30 17:16:12] INFO in database: ABSOLUTE PATH: D:\ecommerce-api\data\ecommerce.db
+[2026-06-30 17:16:12] INFO in timing: POST /api/v1/orders - 0.014474 sec

@@ -1,14 +1,15 @@
 import os
 import sqlite3
 from app.config.settings import DATABASE_PATH
+from app.utils.logger import logger
 
 
 def get_db_connection():
     """
     Create and return SQLite connection.
     """
-    print("DATABASE_PATH:", DATABASE_PATH)
-    print("ABSOLUTE PATH:", os.path.abspath(DATABASE_PATH))
+    logger.info(f"DATABASE_PATH: {DATABASE_PATH}")
+    logger.info(f"ABSOLUTE PATH: {os.path.abspath(DATABASE_PATH)}")
 
     conn = sqlite3.connect(
         DATABASE_PATH,
@@ -106,4 +107,4 @@ def create_tables():
     conn.commit()
     conn.close()
 
-    print("Database tables created successfully.")
+    logger.info("Database tables created successfully.")

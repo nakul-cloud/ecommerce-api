@@ -1,105 +1,68 @@
-from fastapi import FastAPI,Request,status
-from fastapi.responses import JSONResponse
-from app.exceptions.custom_exceptions import(
-    ProductNotFoundException,
-    ProductOutOfStockException,
-    OrderNotFoundException,
-    InvalidTokenException,
-    InvalidCredentialsException,
-    PermissionDeniedException,
-    InvalidPasswordException,
-)      
+import traceback
+from fastapi import status
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-def register_exception_handlers(app:FastAPI):
-    """
-    Register all custom exception handlers for the application
-    """
+from app.exceptions.custom_exceptions import AppException
+from app.utils.response import error_response
 
-    @app.exception_handler(ProductNotFoundException)
-    async def product_not_found_handler(
-        request:Request,
-        exc:ProductNotFoundException,
-    ):
-        """
-        Handle ProductNotFoundException.
-        """
-        
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={
-                'status':'error',
-                'message':exc.message
-            }
+
+async def app_exception_handler(request, exc: AppException):
+    """
+    Handle all application-specific exceptions inheriting from AppException.
+    """
+    return error_response(
+        message=exc.message,
+        status_code=exc.status_code,
+        errors=exc.errors if exc.errors else None,
     )
 
-    @app.exception_handler(ProductOutOfStockException)
-    async def product_out_of_stock_handler(
-        request:Request,
-        exc:ProductOutOfStockException,
-    ):
-        """
-        Handle ProductOutOfStockException.
-        """
-        return JSONResponse(
-            status_code=status.HTTP_409_CONFLICT,
-            content={
-                'status':'error',
-                'message':exc.message
+
+async def validation_exception_handler(request, exc: RequestValidationError):
+    """
+    Handle validation errors (Pydantic / Request parameter validations).
+    """
+    errors = []
+    for err in exc.errors():
+        loc = err.get("loc", [])
+        # Convert loc tuple/list to dot notation, removing 'body' prefix if present
+        field = (
+            ".".join(str(x) for x in loc[1:])
+            if len(loc) > 1 and loc[0] == "body"
+            else ".".join(str(x) for x in loc)
+        )
+        errors.append(
+            {
+                "field": field,
+                "message": err.get("msg", "Validation error"),
             }
         )
-    @app.exception_handler(OrderNotFoundException)
-    async def order_not_found_handler(request: Request, exc: OrderNotFoundException):
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={
-                "status": "error",
-                "message": exc.message,
-        },
+
+    return error_response(
+        message="Validation failed",
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        errors=errors,
     )
 
-    @app.exception_handler(InvalidTokenException)
-    async def invalid_token_handler(request: Request, exc: InvalidTokenException):
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "status": "error",
-                "message": exc.message,
-            },
-        )
-    
-    @app.exception_handler(InvalidCredentialsException)
-    async def invalid_credentials_handler(
-        request: Request,
-        exc: InvalidCredentialsException,
-    ):
-        """
-        Handle invalid login credentials.
-        """
 
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "status": "error",
-                "message": exc.message,
-            },
-        )
-    @app.exception_handler(PermissionDeniedException)
-    async def permission_denied_handler(
-        request: Request,
-        exc: PermissionDeniedException,
-    ):
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content={
-                "status": "error",
-                "message": exc.message,
-            },
-        )
-    @app.exception_handler(InvalidPasswordException)
-    async def invalid_password_handler(request,exc):
-        return JSONResponse(
-            status_code=400,
-            content={
-                "message": exc.message,
-            },
-        )
+async def http_exception_handler(request, exc: StarletteHTTPException):
+    """
+    Handle Starlette HTTP exceptions (like 404 Route Not Found, 405 Method Not Allowed).
+    """
+    return error_response(
+        message=str(exc.detail),
+        status_code=exc.status_code,
+    )
+
+
+async def global_exception_handler(request, exc: Exception):
+    """
+    Handle any otherwise unhandled server exceptions (HTTP 500).
+    """
+    # Print stack trace in development terminal
+    traceback.print_exc()
+
+    return error_response(
+        message="An unexpected error occurred.",
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )

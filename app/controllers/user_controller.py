@@ -1,240 +1,79 @@
-from app.config.database import get_db_connection
-from app.config.settings import ADMIN_REGISTRATION_KEY
+from fastapi.responses import JSONResponse
 
+from app.constants.messages import (
+    ADMIN_REGISTERED,
+    PASSWORD_CHANGED,
+    PROFILE_FETCHED,
+    PROFILE_UPDATED,
+    USER_REGISTERED,
+)
 from app.schemas.user_schema import (
-    UserCreate,
-    UserUpdate,
-    UserResponse,
     AdminRegisterRequest,
     ChangePasswordRequest,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
 )
-
-from app.auth.password import (
-    hash_password,
-    verify_password,
-)
-
-from app.exceptions.custom_exceptions import (
-    PermissionDeniedException,
-    InvalidPasswordException
-)
+from app.services import user_service
+from app.utils.response import success_response
 
 
-# --------------------------------------------------
-# Register Customer
-# --------------------------------------------------
-
-def create_user(user: UserCreate) -> UserResponse:
-    """
-    Register a new customer.
-    """
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
+class UserController:
+    @staticmethod
+    def store(user: UserCreate) -> JSONResponse:
         """
-        INSERT INTO users
-        (
-            username,
-            email,
-            hashed_password
+        Register a new customer.
+        """
+        user_data = user_service.create_user(user)
+        return success_response(
+            message=USER_REGISTERED,
+            data=user_data,
+            status_code=201,
         )
-        VALUES (?, ?, ?)
-        """,
-        (
-            user.username,
-            user.email,
-            hash_password(user.password),
-        ),
-    )
 
-    conn.commit()
-
-    user_id = cursor.lastrowid
-
-    conn.close()
-
-    return UserResponse(
-        id=user_id,
-        username=user.username,
-        email=user.email,
-        role="customer",
-        is_active=True,
-    )
-
-
-# --------------------------------------------------
-# Register Admin
-# --------------------------------------------------
-
-def create_admin(admin: AdminRegisterRequest) -> UserResponse:
-    """
-    Register a new administrator.
-    """
-
-    # Validate admin registration key
-    if admin.admin_key != ADMIN_REGISTRATION_KEY:
-        raise PermissionDeniedException()
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
+    @staticmethod
+    def store_admin(admin: AdminRegisterRequest) -> JSONResponse:
         """
-        INSERT INTO users
-        (
-            username,
-            email,
-            hashed_password,
-            role
+        Register a new administrator.
+        """
+        user_data = user_service.create_admin(admin)
+        return success_response(
+            message=ADMIN_REGISTERED,
+            data=user_data,
+            status_code=201,
         )
-        VALUES (?, ?, ?, ?)
-        """,
-        (
-            admin.username,
-            admin.email,
-            hash_password(admin.password),
-            "admin",
-        ),
-    )
 
-    conn.commit()
-
-    user_id = cursor.lastrowid
-
-    conn.close()
-
-    return UserResponse(
-        id=user_id,
-        username=admin.username,
-        email=admin.email,
-        role="admin",
-        is_active=True,
-    )
-
-# --------------------------------------------------------
-# update the users 
-# --------------------------------------------------------
-
-def update_current_user(
-    current_user: UserResponse,
-    user: UserUpdate,
-) -> UserResponse:
-    """
-    Update the profile of the currently authenticated user.
-    """
-
-    # Create database connection
-    conn = get_db_connection()
-
-    # Create cursor
-    cursor = conn.cursor()
-
-    # --------------------------------------------------
-    # Update current user
-    # --------------------------------------------------
-    cursor.execute(
+    @staticmethod
+    def show(current_user: UserResponse) -> JSONResponse:
         """
-        UPDATE users
-        SET
-            username = ?,
-            email = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-        """,
-        (
-            user.username,
-            user.email,
-            current_user.id,
-        ),
-    )
-
-    conn.commit()
-
-    conn.close()
-
-    # --------------------------------------------------
-    # Return updated user
-    # --------------------------------------------------
-    return UserResponse(
-        id=current_user.id,
-        username=user.username,
-        email=user.email,
-        role=current_user.role,
-        is_active=current_user.is_active,
-    )
-
-def change_password(
-    current_user: UserResponse,
-    password_data: ChangePasswordRequest,
-) -> dict:
-    """
-    Change the password of the currently authenticated user.
-    """
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # ----------------------------------------
-    # Fetch current hashed password
-    # ----------------------------------------
-
-    cursor.execute(
+        Return the current authenticated user's profile.
         """
-        SELECT hashed_password
-        FROM users
-        WHERE id = ?
-        """,
-        (current_user.id,),
-    )
+        return success_response(
+            message=PROFILE_FETCHED,
+            data=current_user,
+        )
 
-    user = cursor.fetchone()
-
-    if user is None:
-        conn.close()
-        raise PermissionDeniedException()
-
-    # ----------------------------------------
-    # Verify old password
-    # ----------------------------------------
-
-    if not verify_password(
-        password_data.old_password,
-        user["hashed_password"],
-    ):
-        conn.close()
-        raise InvalidPasswordException()
-
-    # ----------------------------------------
-    # Hash new password
-    # ----------------------------------------
-
-    new_password = hash_password(
-        password_data.new_password,
-    )
-
-    # ----------------------------------------
-    # Update password
-    # ----------------------------------------
-
-    cursor.execute(
+    @staticmethod
+    def update(
+        current_user: UserResponse,
+        user: UserUpdate,
+    ) -> JSONResponse:
         """
-        UPDATE users
-        SET
-            hashed_password = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-        """,
-        (
-            new_password,
-            current_user.id,
-        ),
-    )
+        Update the profile of the currently authenticated user.
+        """
+        user_data = user_service.update_current_user(current_user, user)
+        return success_response(
+            message=PROFILE_UPDATED,
+            data=user_data,
+        )
 
-    conn.commit()
-    conn.close()
-
-    return {
-        "message": "Password changed successfully."
-    }
+    @staticmethod
+    def change_password(
+        current_user: UserResponse,
+        password_data: ChangePasswordRequest,
+    ) -> JSONResponse:
+        """
+        Change the password of the currently authenticated user.
+        """
+        user_service.change_password(current_user, password_data)
+        return success_response(message=PASSWORD_CHANGED)

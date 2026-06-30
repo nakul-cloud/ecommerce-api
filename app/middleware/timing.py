@@ -1,6 +1,7 @@
 import time
 
 from fastapi import FastAPI, Request
+from app.utils.logger import logger
 
 
 def register_middleware(app: FastAPI):
@@ -33,7 +34,7 @@ def register_middleware(app: FastAPI):
         response.headers["X-Process-Time"] = f"{process_time:.6f} sec"
 
         # Log to terminal
-        print(
+        logger.info(
             f"{request.method} {request.url.path} - {process_time:.6f} sec"
         )
 

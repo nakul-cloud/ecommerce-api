@@ -1,289 +1,70 @@
-from app.exceptions.custom_exceptions import ProductNotFoundException
-from typing import List
-from app.config.database import get_db_connection
-from app.schemas.product_schema import(
-    ProductCreate,
-    ProductUpdate,
-    ProductResponse
+from fastapi.responses import JSONResponse
+
+from app.constants.messages import (
+    PRODUCT_CREATED,
+    PRODUCT_DELETED,
+    PRODUCT_FETCHED,
+    PRODUCT_UPDATED,
+    PRODUCTS_FETCHED,
 )
+from app.schemas.product_schema import ProductCreate, ProductUpdate
+from app.services import product_service
+from app.utils.response import success_response
 
 
-def create_product(product:ProductCreate) -> ProductResponse:
-    """
-    Create a new product in the database.
-    """
-    # Create database connection
-    conn = get_db_connection()
-
-    # Create cursor
-    cursor = conn.cursor()
-
-    cursor.execute(
+class ProductController:
+    @staticmethod
+    def store(product: ProductCreate) -> JSONResponse:
         """
-        INSERT INTO products
-        (
-        name,
-        description,
-        category,
-        price,
-        stock_quantity,
-        cost_price
+        Create a new product.
+        """
+        product_data = product_service.create_product(product)
+        return success_response(
+            message=PRODUCT_CREATED,
+            data=product_data,
+            status_code=201,
         )
-        VALUES (?,?,?,?,?,?)
-        """,
-        (
-            product.name,
-            product.description,
-            product.category,
-            product.price,
-            product.stock_quantity,
-            product.cost_price,
-        ),
-    )
 
-    # Save changes
-    conn.commit()
-
-    # Get newly created product ID
-    product_id = cursor.lastrowid
-
-    # Close connection
-    conn.close()
-    
-
-    # Return the API response
-    return ProductResponse(
-        id=product_id,
-        name=product.name,
-        description=product.description,
-        category=product.category,
-        price=product.price,
-        stock_quantity=product.stock_quantity,
-    )
-    
-def get_all_products() -> List[ProductResponse]:
-    """
-    Retrieve all products from the database.
-    """
-
-    # Create database connectionNEX
-    conn = get_db_connection()
-
-    # Create cursor
-    cursor = conn.cursor()
-
-    # Fetch all products
-    cursor.execute("""
-        SELECT
-            id,
-            name,
-            description,
-            category,
-            price,
-            stock_quantity
-        FROM products
-    """)
-    # Fetch all rows
-    rows = cursor.fetchall()
-
-    # Close connection
-    conn.close()
-
-    # Convert database rows into ProductResponse objects
-    products = [
-        ProductResponse(
-            id=row["id"],
-            name=row["name"],
-            description=row["description"],
-            category=row["category"],
-            price=row["price"],
-            stock_quantity=row["stock_quantity"],
+    @staticmethod
+    def index() -> JSONResponse:
+        """
+        Retrieve all products.
+        """
+        products = product_service.get_all_products()
+        return success_response(
+            message=PRODUCTS_FETCHED,
+            data=products,
         )
-        for row in rows
-    ]
 
-    return products
-
-def get_product_by_id(product_id: int) -> ProductResponse:
-    """
-    Retrieve a single product by its ID.
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute(
+    @staticmethod
+    def show(product_id: int) -> JSONResponse:
         """
-        SELECT
-            id,
-            name,
-            description,
-            category,
-            price,
-            stock_quantity
-        FROM products
-        WHERE id = ?
-        """,
-        (product_id,),
-    )
-    row = cursor.fetchone()
-    conn.close()
-
-    if row is None:
-        raise ProductNotFoundException(product_id)
-
-    return ProductResponse(
-        id=row["id"],
-        name=row["name"],
-        description=row["description"],
-        category=row["category"],
-        price=row["price"],
-        stock_quantity=row["stock_quantity"],
-    )
-
-    
-def delete_product(product_id:int) -> dict:
-    """
-    Delete a product by its ID
-    """
-    conn=get_db_connection()
-    cursor=conn.cursor()
-
-# Delete the product
-    cursor.execute(
+        Retrieve a single product by its ID.
         """
-        DELETE FROM products
-        WHERE id = ?
-        """,
-        (product_id,),
-    )
+        product_data = product_service.get_product_by_id(product_id)
+        return success_response(
+            message=PRODUCT_FETCHED,
+            data=product_data,
+        )
 
-    conn.commit()
+    @staticmethod
+    def destroy(product_id: int) -> JSONResponse:
+        """
+        Delete a product by its ID.
+        """
+        product_service.delete_product(product_id)
+        return success_response(message=PRODUCT_DELETED)
 
-    # check whether row was delected 
-
-    if cursor.rowcount == 0:
-        conn.close()
-        raise ProductNotFoundException(product_id)
-
-    conn.close()
-
-    return{
-        "message": "Product delected successfully"
-    }
-    
-
-def update_product(
-        product_id:int,
-        product:ProductUpdate,
-    ) -> ProductResponse:
+    @staticmethod
+    def update(
+        product_id: int,
+        product: ProductUpdate,
+    ) -> JSONResponse:
         """
         Update an existing product.
         """
-
-        conn = get_db_connection()
-
-        cursor = conn.cursor()
-
-        # ----------------------------------------
-        # Check if product exists
-        # ----------------------------------------
-
-        cursor.execute(
-            """
-            SELECT *
-            FROM products
-            WHERE id = ?
-            """,
-            (product_id,),
-        )
-
-        existing_product = cursor.fetchone()
-
-        if existing_product is None:
-            conn.close()
-            raise ProductNotFoundException(product_id)
-
-
-        #  -------------------------------------------------------
-        # Use existing values if a field is not provided 
-        # ---------------------------------------------------------
-
-        updated_name = (
-            product.name
-            if product.name is not None
-            else existing_product["name"]
-        )
-
-        updated_description =(
-            product.description
-            if product.description is not None
-            else existing_product["description"]
-        )
-
-        updated_category =(
-            product.category
-            if product.category is not None
-            else existing_product["category"]
-        )
-
-        updated_price = (
-            product.price
-            if product.price is not None
-            else existing_product["price"]
-        )
-
-        updated_stock = (
-            product.stock_quantity
-            if product.stock_quantity is not None
-            else existing_product["stock_quantity"]
-        )
-        
-        updated_cost_price = (
-            product.cost_price
-            if product.cost_price is not None
-            else existing_product["cost_price"]
-        )
-
-        # -----------------------------------------------------------
-        # Update product 
-        # -----------------------------------------------------------
-
-
-        cursor.execute(
-            """
-            UPDATE products
-            SET
-                name = ?,
-                description = ?,
-                category = ?,
-                price = ?,
-                stock_quantity = ?,
-                cost_price = ?
-            WHERE id = ?
-            """,
-            (
-                updated_name,
-                updated_description,
-                updated_category,
-                updated_price,
-                updated_stock,
-                updated_cost_price,
-                product_id,
-            ),
-        )
-
-        conn.commit()
-        conn.close()
-
-        # -----------------------------------------------------
-        # Return updated Product 
-        # ---------------------------------------------------
-
-        return ProductResponse(
-            id = product_id,
-            name = updated_name,
-            description = updated_description,
-            category = updated_category,
-            price = updated_price,
-            stock_quantity = updated_stock,
+        product_data = product_service.update_product(product_id, product)
+        return success_response(
+            message=PRODUCT_UPDATED,
+            data=product_data,
         )

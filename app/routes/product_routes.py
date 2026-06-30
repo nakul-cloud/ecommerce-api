@@ -1,25 +1,13 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, status
+from app.constants.roles import ADMIN
+from fastapi import APIRouter, Depends
 
 from app.auth.dependencies import require_role
-
-from app.controllers.product_controller import (
-    create_product,
-    get_all_products,
-    get_product_by_id,
-    update_product,
-    delete_product,
-)
-
+from app.controllers.product_controller import ProductController
 from app.schemas.product_schema import (
     ProductCreate,
     ProductUpdate,
-    ProductResponse,
 )
-
 from app.schemas.user_schema import UserResponse
-
 
 router = APIRouter(
     prefix="/products",
@@ -30,54 +18,40 @@ router = APIRouter(
 # --------------------------------------------------
 # Create Product (Admin Only)
 # --------------------------------------------------
-@router.post(
-    "",
-    response_model=ProductResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_new_product(
+@router.post("")
+def store(
     product: ProductCreate,
-    current_user: UserResponse = Depends(
-        require_role("admin")
-    ),
+    current_user: UserResponse = Depends(require_role(ADMIN)),
 ):
     """
     Create a new product.
     Admin only.
     """
-    return create_product(product)
+    return ProductController.store(product)
 
 
 # --------------------------------------------------
 # Get All Products (Public)
 # --------------------------------------------------
-@router.get(
-    "",
-    response_model=List[ProductResponse],
-    status_code=status.HTTP_200_OK,
-)
-def get_products() -> List[ProductResponse]:
+@router.get("")
+def index():
     """
     Retrieve all products.
     """
-    return get_all_products()
+    return ProductController.index()
 
 
 # --------------------------------------------------
 # Get Product By ID (Public)
 # --------------------------------------------------
-@router.get(
-    "/{product_id}",
-    response_model=ProductResponse,
-    status_code=status.HTTP_200_OK,
-)
-def get_product(
+@router.get("/{product_id}")
+def show(
     product_id: int,
-) -> ProductResponse:
+):
     """
     Retrieve a single product by its ID.
     """
-    return get_product_by_id(product_id)
+    return ProductController.show(product_id)
 
 
 # --------------------------------------------------
@@ -85,22 +59,18 @@ def get_product(
 # --------------------------------------------------
 @router.put(
     "/{product_id}",
-    response_model=ProductResponse,
-    status_code=status.HTTP_200_OK,
     summary="Update an existing product",
 )
-def update_existing_product(
+def update(
     product_id: int,
     product: ProductUpdate,
-    current_user: UserResponse = Depends(
-        require_role("admin")
-    ),
+    current_user: UserResponse = Depends(require_role(ADMIN)),
 ):
     """
     Update an existing product.
     Admin only.
     """
-    return update_product(
+    return ProductController.update(
         product_id=product_id,
         product=product,
     )
@@ -109,18 +79,13 @@ def update_existing_product(
 # --------------------------------------------------
 # Delete Product (Admin Only)
 # --------------------------------------------------
-@router.delete(
-    "/{product_id}",
-    status_code=status.HTTP_200_OK,
-)
-def delete_existing_product(
+@router.delete("/{product_id}")
+def destroy(
     product_id: int,
-    current_user: UserResponse = Depends(
-        require_role("admin")
-    ),
+    current_user: UserResponse = Depends(require_role(ADMIN)),
 ):
     """
     Delete a product by its ID.
     Admin only.
     """
-    return delete_product(product_id)
+    return ProductController.destroy(product_id)
