@@ -14,12 +14,12 @@ Provides JWT token operations:
 * `verify_jwt_token(token: str) -> dict | None`: Validates token signatures and returns decoded payload dictionaries, returning `None` if invalid.
 
 ### `logger.py`
-Implements the centralized application logging context:
-* Configures logging levels dynamically based on settings (`logging.DEBUG` vs `logging.INFO`).
-* Stream formats log outputs: `[%(asctime)s] %(levelname)s in %(module)s: %(message)s`.
-* Configures two distinct handlers:
-  * Console handler streaming logs directly to `sys.stdout`.
-  * File handler appending log lines to the persistent file [logs/app.log](file:///d:/ecommerce-api/logs/app.log).
+Implements the centralized application logging context using **Loguru**:
+* Configures logging levels dynamically based on settings (`"DEBUG"` for development, `"INFO"` for production).
+* Formats log outputs with timestamp, log level, and script origin context.
+* Configures two distinct outputs automatically:
+  * Console handler streaming logs directly to standard output (`sys.stdout`).
+  * File handler appending log lines to the persistent file [logs/app.log](file:///d:/ecommerce-api/logs/app.log) with automatic **10 MB log rotation**.
 
 ### `response.py`
 Provides a consistent response format for the client:

@@ -1,37 +1,33 @@
-import logging
 import os
 import sys
+from loguru import logger
 from app.config.settings import ENV
 
 # Determine log level based on environment config
-log_level = logging.DEBUG if ENV == "development" else logging.INFO
-
-# Get named logger
-logger = logging.getLogger("ecommerce_api")
-logger.setLevel(log_level)
-
-# Create standard formatter
-formatter = logging.Formatter(
-    fmt="[%(asctime)s] %(levelname)s in %(module)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
-# Stream handler for standard output
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(log_level)
-console_handler.setFormatter(formatter)
+log_level = "DEBUG" if ENV == "development" else "INFO"
 
 # Ensure logs directory exists in the workspace root
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)
 log_file_path = os.path.join(log_dir, "app.log")
 
-# File handler for persistent logging
-file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
-file_handler.setLevel(log_level)
-file_handler.setFormatter(formatter)
+# Configure loguru: remove default handler, add custom stdout and file handlers
+logger.remove()
 
-# Prevent duplicate handlers
-if not logger.handlers:
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
+# Add standard output stream handler
+logger.add(
+    sys.stdout,
+    level=log_level,
+    format="[{time:YYYY-MM-DD HH:mm:ss}] {level} in {module}: {message}",
+    colorize=True,
+)
+
+# Add file handler for persistent logging with rotation
+logger.add(
+    log_file_path,
+    level=log_level,
+    format="[{time:YYYY-MM-DD HH:mm:ss}] {level} in {module}: {message}",
+    encoding="utf-8",
+    rotation="10 MB",
+)
+

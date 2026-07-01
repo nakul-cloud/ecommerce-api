@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_role
+from app.constants.roles import ADMIN
 from app.controllers.user_controller import UserController
 from app.schemas.user_schema import (
     AdminRegisterRequest,
@@ -8,6 +9,7 @@ from app.schemas.user_schema import (
     UserCreate,
     UserResponse,
     UserUpdate,
+    WarehouseRegisterRequest,
 )
 
 router = APIRouter(
@@ -28,8 +30,25 @@ def store(user: UserCreate):
 def store_admin(admin: AdminRegisterRequest):
     """
     Register a new administrator.
+    Requires a valid admin_key in the request body.
     """
     return UserController.store_admin(admin)
+
+
+@router.post(
+    "/register-warehouse",
+    summary="Register a warehouse user (Admin only)",
+)
+def store_warehouse(
+    warehouse: WarehouseRegisterRequest,
+    current_user: UserResponse = Depends(require_role(ADMIN)),
+):
+    """
+    Register a new warehouse staff member.
+
+    Admin only.
+    """
+    return UserController.store_warehouse(warehouse)
 
 
 @router.get(

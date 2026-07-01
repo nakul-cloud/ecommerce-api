@@ -1,4 +1,4 @@
-from app.constants.roles import ADMIN, CUSTOMER
+from app.constants.roles import ADMIN, CUSTOMER, WAREHOUSE
 from app.auth.password import hash_password, verify_password
 from app.config.database import get_db_connection
 from app.config.settings import ADMIN_REGISTRATION_KEY
@@ -12,6 +12,7 @@ from app.schemas.user_schema import (
     UserCreate,
     UserResponse,
     UserUpdate,
+    WarehouseRegisterRequest,
 )
 
 
@@ -182,3 +183,43 @@ def change_password(
 
     conn.commit()
     conn.close()
+
+
+def create_warehouse_user(warehouse: WarehouseRegisterRequest) -> UserResponse:
+    """
+    Register a new warehouse staff member.
+    Route is protected by require_role(ADMIN) — no secret key needed here.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO users
+        (
+            username,
+            email,
+            hashed_password,
+            role
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            warehouse.username,
+            warehouse.email,
+            hash_password(warehouse.password),
+            WAREHOUSE,
+        ),
+    )
+
+    conn.commit()
+    user_id = cursor.lastrowid
+    conn.close()
+
+    return UserResponse(
+        id=user_id,
+        username=warehouse.username,
+        email=warehouse.email,
+        role=WAREHOUSE,
+        is_active=True,
+    )

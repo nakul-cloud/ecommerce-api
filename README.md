@@ -41,16 +41,18 @@ The goal: build a backend that I can revisit after a year and understand the arc
 
 * **Layered Architecture** — Routes, Class-based Controllers, Business Services, and Config cleanly separated
 * **Product CRUD** — Create, List, Retrieve, Update, and Delete operations
-* **Order CRUD** — Create orders, list all orders, and retrieve a single order by ID with stock deduction
-* **User & Admin Registration** — Customer sign-up and secure administrator registration guarded by a registration key
+* **Order CRUD & Pagination** — Create orders with stock checks, retrieve order by ID, and list orders with page/limit pagination metadata (prevents payload freezing on Swagger UI)
+* **User, Admin & Staff Registration** — Customer self-sign-up, secure administrator registration (requires `admin_key`), and admin-only creation of warehouse roles
 * **JWT Stateless Authentication** — Token generation/decoding using **`PyJWT`** with secure password hashing using `passlib` (bcrypt)
-* **Role-Based Access Control (RBAC)** — Reusable route dependencies enforce customer or admin permissions (`Depends(require_role("admin"))`), supporting multiple roles checker using varargs (`*roles: str`)
+* **Role-Based Access Control (RBAC)** — Reusable route dependencies enforce customer, admin, or warehouse permissions (`Depends(require_role(...))`), supporting multiple roles checker using varargs (`*roles: str`)
+* **Warehouse Packing Workflow** — Semantic workflow endpoints (`PATCH /orders/{id}/pack` & `PATCH /orders/{id}/ready`) accepting specialized schemas (`OrderPackingUpdate`, `PackingChecklist`) to track picking details, package dimensions/weights, and audit metrics (`packed_by`, `packed_at`)
+* **Fulfillment State Machine** — Strict status transition matrix (`VALID_TRANSITIONS` guard) prevents illegal order jumps (e.g. from `Pending` straight to `Delivered`)
 * **Pydantic Validation & Sanitization** — Strict request/response schemas with field-level constraints. Includes automatic data cleansing (whitespace trimming and email lowercasing) using Pydantic `@field_validator` hooks
 * **Internal Schemas** — `ValidatedOrderItem` separates controller-internal data from public API schemas
 * **Unified Exception Handling** — Custom exceptions mapped to a base `AppException` which is caught globally to return consistent JSON error envelopes
 * **Modular Middleware Pipeline** — Restructured middlewares: Timing middleware, security headers (using `secure`), IP-based rate limiting (using `slowapi`), Gzip compression, and CORS
 * **Environment Configuration** — Settings configuration parameters parsed and validated via `pydantic-settings` from `.env`
-* **Standard Logging System** — Logging utility in `logger.py` replacing raw `print()` calls, redirecting outputs both to the console and to a persistent log file (`logs/app.log`)
+* **Loguru Logging Infrastructure** — Replaced standard Python `logging` with `Loguru` for structured, rotated log files (`logs/app.log`) and formatted console logging
 * **Auto-generated API Docs** — Swagger UI and ReDoc available out of the box (with secure headers bypassed specifically for documentation endpoints)
 * **Database Auto-setup** — Tables created automatically on startup inside the modern ASGI `lifespan` hook
 * **Database Seeder** — One command (`python -m app.seed.seed_database`) populates 1 admin + 100 customers + 250 products + 1000 orders using `Faker`
@@ -59,8 +61,8 @@ The goal: build a backend that I can revisit after a year and understand the arc
 
 ### Planned
 
-* Pagination for list endpoints
 * Migration from raw SQL to SQLAlchemy + Alembic
+* Courier logistics integration (Phase 4)
 * Automated testing with pytest
 * AI/RAG integration for product search
 
@@ -285,6 +287,7 @@ You can obtain the JWT access token by sending a POST request to `/auth/login` w
 | `POST` | `/auth/login` | — | Login user, return JWT bearer access token | `200` |
 | `POST` | `/users/register` | — | Register a new customer | `201` |
 | `POST` | `/users/register-admin` | — | Register a new admin (requires `admin_key` in body) | `201` |
+| `POST` | `/users/register-warehouse` | ✅ Admin Role | Register a new warehouse user (Admin Only) | `201` |
 
 #### Products
 
@@ -300,8 +303,13 @@ You can obtain the JWT access token by sending a POST request to `/auth/login` w
 | Method | Endpoint | Auth | Description | Status Code |
 |---|---|---|---|---|
 | `POST` | `/orders` | ✅ User (Any) | Create a new customer order | `201` |
-| `GET` | `/orders` | ✅ User (Any) | List all customer orders | `200` |
-| `GET` | `/orders/{order_id}` | ✅ User (Any) | Retrieve a single order by ID | `200` |
+| `GET` | `/orders` | ✅ User (Any) | List customer orders (paginated; warehouse sees Confirmed/Processing only) | `200` |
+| `GET` | `/orders/{order_id}` | ✅ User (Any) | Retrieve a single order by ID (ownership or admin/warehouse role enforced) | `200` |
+| `PATCH` | `/orders/{order_id}/cancel` | ✅ Customer | Cancel own Pending order, restoring product stock levels | `200` |
+| `PATCH` | `/orders/{order_id}/confirm` | ✅ Admin Role | Confirm a Pending order, auditing time/confirming user ID | `200` |
+| `PATCH` | `/orders/{order_id}/pack` | ✅ Warehouse Role | Start packaging a Confirmed order, adding optional warehouse notes | `200` |
+| `PATCH` | `/orders/{order_id}/ready` | ✅ Warehouse Role | Mark order ready for courier with weight/dimensions checklist & packed_by audit | `200` |
+| `PATCH` | `/orders/{order_id}/status` | ✅ Admin Role | Generic update order status enforcing strict state transitions | `200` |
 
 <br/>
 
@@ -401,8 +409,9 @@ ecommerce-api/
 | **Phase 1** | Project structure, FastAPI setup, SQLite, Product CRUD, Schemas, Custom Exceptions | ✅ Done |
 | **Phase 2** | Order CRUD with stock deduction, Internal schemas, Request timing middleware, `OrderNotFoundException` | ✅ Done |
 | **Phase 3** | JWT stateless authentication (Bcrypt, token encoding/decoding), User & Admin registration, Role-Based Access Control (RBAC) | ✅ Done |
-| **Phase 3.5** | Database seeder — Faker-powered 100 users, 250 products, 1000 orders in one command | ✅ Done |
-| **Phase 4** | Product Update operation (✅ Done), Pagination for list endpoints (🔜 Planned) | 🔄 In Progress |
+| **Phase 3.5** | Order cancellation, Admin confirmation, strict state transition guards, page/limit list pagination, Loguru logging migration | ✅ Done |
+| **Phase 3.6** | Warehouse packaging operations: registered roles, `/pack` notes update, `/ready` checklist validation, database column extensions | ✅ Done |
+| **Phase 4** | Courier Integration & Logistics (Picked Up ➔ In Transit ➔ Out For Delivery ➔ Delivered / Failed status transitions) | 🔄 In Progress |
 | **Phase 5** | SQLAlchemy ORM, Repository pattern, Alembic migrations | 🔜 Planned |
 | **Phase 6** | Automated testing with pytest, Test fixtures | 🔜 Planned |
 | **Phase 7** | AI/RAG integration — product search with embeddings | 🔜 Planned |

@@ -15,3 +15,13 @@ PRODUCTS_FETCHED = "Products fetched successfully."
 ORDER_CREATED = "Order created successfully."
 ORDER_FETCHED = "Order fetched successfully."
 ORDERS_FETCHED = "Orders fetched successfully."
+ORDER_STATUS_UPDATED = "Order status updated successfully."
+ORDER_CANCELLED = "Order cancelled successfully."
+ORDER_CONFIRMED = "Order confirmed successfully."
+WAREHOUSE_REGISTERED = "Warehouse user registered successfully."
+ORDER_PROCESSING = "Order is now being processed."
+ORDER_PACKED = "Order packed and ready for shipment."
+
+
+
+

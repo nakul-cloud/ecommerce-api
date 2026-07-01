@@ -108,3 +108,54 @@ def create_tables():
     conn.close()
 
     logger.info("Database tables created successfully.")
+
+    # Run column migrations after tables are guaranteed to exist
+    run_migrations()
+
+
+def run_migrations():
+    """
+    Safely add new columns to existing tables.
+
+    Uses try/except to silently skip columns that already exist.
+    SQLite does not support IF NOT EXISTS on ALTER TABLE.
+    This pattern is safe to run on every startup.
+    """
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # -----------------------------------------------
+    # Phase 1 & 2 — Order audit columns
+    # -----------------------------------------------
+
+    migrations = [
+        # Phase 1 — Cancellation audit
+        "ALTER TABLE orders ADD COLUMN cancelled_at TIMESTAMP",
+        "ALTER TABLE orders ADD COLUMN cancelled_reason TEXT",
+
+        # Phase 2 — Admin confirmation audit
+        "ALTER TABLE orders ADD COLUMN confirmed_by INTEGER REFERENCES users(id)",
+        "ALTER TABLE orders ADD COLUMN confirmed_at TIMESTAMP",
+
+        # Phase 3 — Warehouse packing audit
+        "ALTER TABLE orders ADD COLUMN packed_by INTEGER REFERENCES users(id)",
+        "ALTER TABLE orders ADD COLUMN packed_at TIMESTAMP",
+        "ALTER TABLE orders ADD COLUMN warehouse_notes TEXT",
+        "ALTER TABLE orders ADD COLUMN all_items_verified BOOLEAN",
+        "ALTER TABLE orders ADD COLUMN package_weight REAL",
+        "ALTER TABLE orders ADD COLUMN package_dimensions TEXT",
+    ]
+
+    for sql in migrations:
+        try:
+            cursor.execute(sql)
+            logger.info(f"Migration applied: {sql}")
+        except Exception:
+            # Column already exists — safe to ignore
+            pass
+
+    conn.commit()
+    conn.close()
+
+    logger.info("Database migrations complete.")

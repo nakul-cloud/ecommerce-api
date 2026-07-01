@@ -20,7 +20,7 @@ In clean web architecture, the **Service Layer** represents the core brain of th
 Below is the database execution path orchestrated inside `order_service.py` during order creation:
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#ff835eff', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#fafcf8ff', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0'}}}%%
 flowchart TD
     Start[Controller invokes create_order] --> DBConn[1. Open get_db_connection]
     DBConn --> LoopItems[2. Check each requested item]
@@ -59,9 +59,14 @@ Executes SQL queries for catalog operations:
 
 ### `order_service.py`
 Manages atomic order operations:
-* **`create_order(order: OrderCreate, current_user: UserResponse) -> OrderResponse`**: Runs stock checks and calculates totals. Then updates the `orders`, `order_items`, and `products` tables inside a transaction block.
-* **`get_all_orders() -> List[OrderResponse]`**: Performs nested SQL queries to fetch all orders with their order items.
-* **`get_order_by_id(order_id: int, current_user: UserResponse) -> OrderResponse`**: Fetches details for a single order by ID after validating ownership or admin status.
+* **`create_order(order: OrderCreate, current_user: UserResponse) -> OrderResponse`**: Runs stock checks, stock deductions, and inserts rows into `orders` and `order_items` in a transaction.
+* **`get_orders(current_user: UserResponse, page: int, limit: int) -> PaginatedOrdersResponse`**: Fetches paginated list of orders. Customers see only their own, admin sees all, and warehouse staff see only Confirmed + Processing orders.
+* **`get_order_by_id(order_id: int, current_user: UserResponse) -> OrderResponse`**: Fetches details for a single order by ID after validating user access.
+* **`cancel_order(order_id: int, cancel_request: OrderCancelRequest, current_user: UserResponse) -> OrderResponse`**: Cancels customer's own Pending order and restores quantities to catalog inventory.
+* **`confirm_order(order_id: int, current_user: UserResponse) -> OrderResponse`**: Admin confirms a Pending order and records `confirmed_by` and `confirmed_at`.
+* **`pack_order(order_id: int, packing_update: OrderPackingUpdate, current_user: UserResponse) -> OrderResponse`**: Warehouse claims a Confirmed order to start packaging (moves status to `Processing`) and records notes.
+* **`ready_order(order_id: int, checklist: PackingChecklist, current_user: UserResponse) -> OrderResponse`**: Warehouse verifies all items, records package dimensions/weight, and marks order ready (moves status to `Ready For Shipment`). Records `packed_by` and `packed_at`.
+* **`update_order_status(order_id: int, status_update: OrderStatusUpdate, current_user: UserResponse) -> OrderResponse`**: Enforces strict fulfillment flow boundaries using a `VALID_TRANSITIONS` guard to prevent illegal state jumps.
 
 ---
 
@@ -69,6 +74,7 @@ Manages atomic order operations:
 Executes user profile operations:
 * **`create_user(user: UserCreate) -> UserResponse`**: Hashes the password and INSERTs the user with a `customer` role.
 * **`create_admin(admin: AdminRegisterRequest) -> UserResponse`**: Validates the admin registration key and INSERTs the admin user.
+* **`create_warehouse_user(warehouse: WarehouseRegisterRequest) -> UserResponse`**: INSERTs a new user with `warehouse` role (called by admins).
 * **`update_current_user(...)`**: Performs UPDATE statements on user fields.
 * **`change_password(...)`**: Validates the existing password hash using bcrypt and saves the new password hash.
 

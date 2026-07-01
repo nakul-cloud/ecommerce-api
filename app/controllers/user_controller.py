@@ -7,6 +7,7 @@ from app.constants.messages import (
     PROFILE_FETCHED,
     PROFILE_UPDATED,
     USER_REGISTERED,
+    WAREHOUSE_REGISTERED,
 )
 from app.schemas.user_schema import (
     AdminRegisterRequest,
@@ -14,6 +15,7 @@ from app.schemas.user_schema import (
     UserCreate,
     UserResponse,
     UserUpdate,
+    WarehouseRegisterRequest,
 )
 from app.services import user_service
 from app.utils.response import success_response
@@ -40,6 +42,18 @@ class UserController:
         user_data = user_service.create_admin(admin)
         return success_response(
             message=ADMIN_REGISTERED,
+            data=user_data,
+            status_code=HTTP_201_CREATED,
+        )
+
+    @staticmethod
+    def store_warehouse(warehouse: WarehouseRegisterRequest) -> JSONResponse:
+        """
+        Register a new warehouse staff member. Admin only.
+        """
+        user_data = user_service.create_warehouse_user(warehouse)
+        return success_response(
+            message=WAREHOUSE_REGISTERED,
             data=user_data,
             status_code=HTTP_201_CREATED,
         )

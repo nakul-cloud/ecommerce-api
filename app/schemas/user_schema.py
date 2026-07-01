@@ -110,6 +110,18 @@ class AdminRegisterRequest(UserCreate):
 
 
 # --------------------------------------------------
+# Register Warehouse User
+# --------------------------------------------------
+
+class WarehouseRegisterRequest(UserCreate):
+    """
+    Schema used when an admin registers a warehouse staff member.
+    No secret key required — route is protected by require_role(ADMIN).
+    """
+    pass
+
+
+# --------------------------------------------------
 # Change Password
 # --------------------------------------------------
 

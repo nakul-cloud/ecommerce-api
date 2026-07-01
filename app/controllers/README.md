@@ -59,10 +59,20 @@ Maps order operations to services:
 * **`store(order: OrderCreate, current_user: UserResponse) -> JSONResponse`**
   - Invokes `order_service.create_order(order, current_user)`.
   - Returns `success_response` with `HTTP_201_CREATED`.
-* **`index() -> JSONResponse`**
-  - Invokes `order_service.get_all_orders()`.
+* **`index(current_user: UserResponse, page: int, limit: int) -> JSONResponse`**
+  - Invokes `order_service.get_orders(current_user, page, limit)`.
 * **`show(order_id: int, current_user: UserResponse) -> JSONResponse`**
   - Invokes `order_service.get_order_by_id(order_id, current_user)`.
+* **`update_status(order_id: int, status_update: OrderStatusUpdate, current_user: UserResponse) -> JSONResponse`**
+  - Invokes `order_service.update_order_status(order_id, status_update, current_user)`.
+* **`cancel(order_id: int, cancel_request: OrderCancelRequest, current_user: UserResponse) -> JSONResponse`**
+  - Invokes `order_service.cancel_order(order_id, cancel_request, current_user)`.
+* **`confirm(order_id: int, current_user: UserResponse) -> JSONResponse`**
+  - Invokes `order_service.confirm_order(order_id, current_user)`.
+* **`pack(order_id: int, packing_update: OrderPackingUpdate, current_user: UserResponse) -> JSONResponse`**
+  - Invokes `order_service.pack_order(order_id, packing_update, current_user)`.
+* **`ready(order_id: int, checklist: PackingChecklist, current_user: UserResponse) -> JSONResponse`**
+  - Invokes `order_service.ready_order(order_id, checklist, current_user)`.
 
 ---
 
@@ -73,6 +83,9 @@ Maps account registration and profile management:
   - Returns `success_response` with `HTTP_201_CREATED`.
 * **`store_admin(admin: AdminRegisterRequest) -> JSONResponse`**
   - Invokes `user_service.create_admin(admin)`.
+  - Returns `success_response` with `HTTP_201_CREATED`.
+* **`store_warehouse(warehouse: WarehouseRegisterRequest) -> JSONResponse`**
+  - Invokes `user_service.create_warehouse_user(warehouse)`.
   - Returns `success_response` with `HTTP_201_CREATED`.
 * **`show(current_user: UserResponse) -> JSONResponse`**
   - Returns current user details wrapped in `success_response`.

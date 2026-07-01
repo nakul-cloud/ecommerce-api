@@ -73,13 +73,18 @@ flowchart TD
 ### `order_schema.py`
 * **`OrderItem`**: Enforces `product_id` and `quantity` constraints.
 * **`OrderCreate`**: Enforces a list of `items` with at least 1 item (`min_length=1`).
-* **`OrderResponse`**: Formats order receipts and total amounts.
+* **`OrderCancelRequest`**: Optional `reason` field for customer cancellations.
+* **`OrderStatusUpdate`**: Enforces new status string for admin status transitions.
+* **`OrderPackingUpdate`**: Optional `warehouse_notes` text for packaging steps.
+* **`PackingChecklist`**: Enforces `all_items_verified` (bool), positive `package_weight` (float), and `package_dimensions` (string) checks.
+* **`OrderResponse`**: Formats order receipts, items list, total amounts, and dynamically filters and exposes warehouse notes, checklists, and audit details.
 
 ---
 
 ### `user_schema.py`
 * **`UserCreate`**: Enforces username, email, and password registration constraints. Sanitizes username (whitespace trim & non-empty check) and lowercases email address automatically. Checks password strength rules.
 * **`AdminRegisterRequest`**: Inherits `UserCreate`, adds validation for `admin_key`.
+* **`WarehouseRegisterRequest`**: Inherits `UserCreate`, used by administrators to securely register warehouse staff.
 * **`UserResponse`**: Returns user profile details. Excludes `hashed_password`.
 * **`UserUpdate`**: Profile update input. Requires `username` and `email`. Sanitizes strings.
 * **`ChangePasswordRequest`**: Password change validation. Validates new password strength.

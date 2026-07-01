@@ -40,14 +40,31 @@ flowchart LR
 
 ---
 
-## 3. Route Specifications & Endpoints
-
 All route files are grouped by domain and invoke class-based controllers:
 
-*   **Auth Routes (`auth_routes.py`)**: Routes prefixed with `/auth`. Maps to static methods on `AuthController`.
-*   **User Routes (`user_routes.py`)**: Routes prefixed with `/users`. Maps to static methods on `UserController`.
-*   **Product Routes (`product_routes.py`)**: Routes prefixed with `/products`. Maps to static methods on `ProductController`.
-*   **Order Routes (`order_routes.py`)**: Routes prefixed with `/orders`. Maps to static methods on `OrderController`.
+*   **Auth Routes (`auth_routes.py`)**: Prefixed with `/auth`.
+    * `POST /auth/login` — Sign in to retrieve JWT access token.
+*   **User Routes (`user_routes.py`)**: Prefixed with `/users`.
+    * `POST /users/register` — Public user self-registration.
+    * `POST /users/register-admin` — Administrator registration (requires `admin_key`).
+    * `POST /users/register-warehouse` — Warehouse worker registration (Admin Only, `Depends(require_role(ADMIN))`).
+    * `GET /users/me` — Retrieve logged-in user profile.
+    * `PUT /users/me` — Update user profile details.
+    * `PUT /users/change-password` — Update user password.
+*   **Product Routes (`product_routes.py`)**: Prefixed with `/products`.
+    * `POST /products` — Add a new product to catalog (Admin Only).
+    * `GET /products` — List all products (public).
+    * `GET /products/{id}` — Get single product by ID (public).
+    * `DELETE /products/{id}` — Remove product from database (Admin Only).
+*   **Order Routes (`order_routes.py`)**: Prefixed with `/orders`.
+    * `POST /orders` — Place order with stock checking (Any authenticated user).
+    * `GET /orders` — List orders (paginated; customers see own, admin sees all, warehouse sees Confirmed/Processing only).
+    * `GET /orders/{id}` — Retrieve order detail (ownership or admin/warehouse access check).
+    * `PATCH /orders/{id}/cancel` — Cancel own Pending order, restoring quantities to stock (Customer Only).
+    * `PATCH /orders/{id}/confirm` — Confirm Pending order, saving administrator audit details (Admin Only).
+    * `PATCH /orders/{id}/pack` — Begin picking/packaging a Confirmed order, adding warehouse notes (Warehouse Only).
+    * `PATCH /orders/{id}/ready` — Complete checklist and mark order ready for shipping (Warehouse Only).
+    * `PATCH /orders/{id}/status` — Update order status (Admin Only, validates strict transitions).
 
 ---
 
