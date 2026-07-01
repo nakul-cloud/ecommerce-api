@@ -15,6 +15,12 @@ In clean web architecture, the **Service Layer** represents the core brain of th
 
 ---
 
+## Order Creation Flow
+
+<p align="center">
+  <img src="assets/1.png" alt="Order Creation Flow" width="1000">
+</p>
+
 ## 2. Business Flow & Database Transactions
 
 Below is the database execution path orchestrated inside `order_service.py` during order creation:
