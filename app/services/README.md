@@ -15,18 +15,12 @@ In clean web architecture, the **Service Layer** represents the core brain of th
 
 ---
 
-## Order Creation Flow
-
-<p align="center">
-  <img src="assets/1.png" alt="Order Creation Flow" width="1000">
-</p>
-
 ## 2. Business Flow & Database Transactions
 
 Below is the database execution path orchestrated inside `order_service.py` during order creation:
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#f8fafc', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4f46e5', 'primaryTextColor': '#1e293b', 'primaryBorderColor': '#3730a3', 'lineColor': '#94a3b8', 'secondaryColor': '#10b981', 'tertiaryColor': '#f59e0b', 'background': '#ffffff', 'mainBkg': '#f8fafc', 'nodeBorder': '#cbd5e1', 'nodeTextColor': '#1e293b', 'textColor': '#ffffff', 'titleColor': '#ffffff', 'edgeLabelBackground': '#ff835eff', 'clusterBkg': '#f1f5f9', 'clusterBorder': '#e2e8f0'}}}%%
 flowchart TD
     Start[Controller invokes create_order] --> DBConn[1. Open get_db_connection]
     DBConn --> LoopItems[2. Check each requested item]
