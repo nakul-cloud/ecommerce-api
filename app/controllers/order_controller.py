@@ -40,11 +40,17 @@ class OrderController:
         )
 
     @staticmethod
-    def show(order_id: int) -> JSONResponse:
+    def show(
+        order_id: int,
+        current_user: UserResponse,
+    ) -> JSONResponse:
         """
         Get order by ID.
         """
-        order_data = order_service.get_order_by_id(order_id)
+        order_data = order_service.get_order_by_id(
+            order_id=order_id,
+            current_user=current_user,
+        )
         return success_response(
             message=ORDER_FETCHED,
             data=order_data,

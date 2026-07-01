@@ -61,8 +61,8 @@ Maps order operations to services:
   - Returns `success_response` with `HTTP_201_CREATED`.
 * **`index() -> JSONResponse`**
   - Invokes `order_service.get_all_orders()`.
-* **`show(order_id: int) -> JSONResponse`**
-  - Invokes `order_service.get_order_by_id(order_id)`.
+* **`show(order_id: int, current_user: UserResponse) -> JSONResponse`**
+  - Invokes `order_service.get_order_by_id(order_id, current_user)`.
 
 ---
 

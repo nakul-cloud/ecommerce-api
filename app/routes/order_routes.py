@@ -25,7 +25,7 @@ def store(
 ):
     """
     Create a new order for the currently authenticated user.
-    """
+    """ 
     return OrderController.store(
         order=order,
         current_user=current_user,
@@ -56,5 +56,15 @@ def show(
 ):
     """
     Retrieve a single order by its ID.
+
+    Admin:
+        Can view any order
+    
+    Customer:
+        Can view only their order
     """
-    return OrderController.show(order_id)
+
+    return OrderController.show(
+        order_id=order_id,
+        current_user=current_user,
+        )

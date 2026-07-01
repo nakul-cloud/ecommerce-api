@@ -70,3 +70,9 @@ coverage.xml
 *.cover
 .hypothesis/
 
+
+# Graphify
+graphify-out/
+skills-lock.json
+
+

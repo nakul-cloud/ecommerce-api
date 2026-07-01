@@ -61,7 +61,7 @@ Executes SQL queries for catalog operations:
 Manages atomic order operations:
 * **`create_order(order: OrderCreate, current_user: UserResponse) -> OrderResponse`**: Runs stock checks and calculates totals. Then updates the `orders`, `order_items`, and `products` tables inside a transaction block.
 * **`get_all_orders() -> List[OrderResponse]`**: Performs nested SQL queries to fetch all orders with their order items.
-* **`get_order_by_id(order_id: int) -> OrderResponse`**: Fetches details for a single order by ID.
+* **`get_order_by_id(order_id: int, current_user: UserResponse) -> OrderResponse`**: Fetches details for a single order by ID after validating ownership or admin status.
 
 ---
 

@@ -1,0 +1,10 @@
+*.md
+README.md
+docs/
+graphify-out/
+.venv/
+venv/
+env/
+.git/
+.idea/
+.vscode/

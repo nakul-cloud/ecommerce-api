@@ -230,25 +230,47 @@ def get_all_orders() -> list[OrderResponse]:
     return order_responses
 
 
-def get_order_by_id(order_id: int) -> OrderResponse:
+def get_order_by_id(
+    order_id: int,
+    current_user: UserResponse,
+) -> OrderResponse:
     """
     Get order by ID.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    cursor.execute(
-        """
-        SELECT
-            id,
-            status,
-            total_amount,
-            created_at
-        FROM orders
-        WHERE id = ?
-        """,
-        (order_id,),
-    )
+    if current_user.role == "admin":
+        cursor.execute(
+            """
+            SELECT
+                id,
+                user_id,
+                status,
+                total_amount,
+                created_at
+            FROM orders
+            WHERE id = ?
+            """,
+            (order_id,),
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT
+                id,
+                user_id,
+                status,
+                total_amount,
+                created_at
+            FROM orders
+            WHERE id = ?
+            AND user_id = ?
+            """,
+            (
+                order_id,
+                current_user.id,
+            ),
+        )
     row = cursor.fetchone()
 
     if row is None:
