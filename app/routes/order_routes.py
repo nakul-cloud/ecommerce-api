@@ -6,7 +6,11 @@ from app.auth.dependencies import (
     require_role,
 )
 from app.controllers.order_controller import OrderController
-from app.schemas.order_schema import OrderCreate
+from app.schemas.order_schema import (
+    OrderCreate,
+    StandardOrderResponse,
+    StandardOrderListResponse,
+)
 from app.schemas.user_schema import UserResponse
 
 router = APIRouter(
@@ -18,7 +22,7 @@ router = APIRouter(
 # --------------------------------------------------
 # Create Order (Authenticated User)
 # --------------------------------------------------
-@router.post("")
+@router.post("", response_model=StandardOrderResponse, status_code=201)
 def store(
     order: OrderCreate,
     current_user: UserResponse = Depends(get_current_user),
@@ -35,21 +39,28 @@ def store(
 # --------------------------------------------------
 # Get All Orders (Admin Only)
 # --------------------------------------------------
-@router.get("")
+@router.get("", response_model=StandardOrderListResponse)
 def index(
-    current_user: UserResponse = Depends(require_role(ADMIN)),
+    current_user: UserResponse = Depends(get_current_user),
 ):
     """
-    Retrieve all orders.
-    Admin only.
+    Retrieve orders.
+
+    Admin:
+        Can view all orders
+    
+    Customer:
+        Can view only their orders
     """
-    return OrderController.index()
+    return OrderController.index(
+        current_user=current_user,
+    )
 
 
 # --------------------------------------------------
 # Get Order By ID
 # --------------------------------------------------
-@router.get("/{order_id}")
+@router.get("/{order_id}", response_model=StandardOrderResponse)
 def show(
     order_id: int,
     current_user: UserResponse = Depends(get_current_user),
@@ -68,3 +79,4 @@ def show(
         order_id=order_id,
         current_user=current_user,
         )
+

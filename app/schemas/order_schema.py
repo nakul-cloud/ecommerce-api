@@ -123,3 +123,19 @@ class OrderResponse(BaseModel):
         ...,
         description="List of products included in the order.",
     )
+
+
+# ==================================================
+# Standard API Response Wrappers
+# ==================================================
+
+class StandardOrderResponse(BaseModel):
+    status: str = Field("success", example="success")
+    message: str = Field(..., example="Order action succeeded")
+    data: OrderResponse
+
+
+class StandardOrderListResponse(BaseModel):
+    status: str = Field("success", example="success")
+    message: str = Field(..., example="Orders fetched successfully")
+    data: List[OrderResponse]

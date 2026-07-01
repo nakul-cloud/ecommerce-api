@@ -163,24 +163,39 @@ def create_order(
         conn.close()
 
 
-def get_all_orders() -> list[OrderResponse]:
+def get_all_orders(current_user: UserResponse) -> list[OrderResponse]:
     """
     Get all orders.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT
-            id,
-            status,
-            total_amount,
-            created_at
-        FROM orders
-        ORDER BY id
-        """
-    )
+    if current_user.role == "admin":
+        cursor.execute(
+            """
+            SELECT
+                id,
+                status,
+                total_amount,
+                created_at
+            FROM orders
+            ORDER BY created_at DESC
+            """
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT
+                id,
+                status,
+                total_amount,
+                created_at
+            FROM orders
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            """,
+            (current_user.id,),
+        )
     rows = cursor.fetchall()
 
     order_responses = []

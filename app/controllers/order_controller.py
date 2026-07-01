@@ -29,11 +29,11 @@ class OrderController:
         )
 
     @staticmethod
-    def index() -> JSONResponse:
+    def index(current_user: UserResponse) -> JSONResponse:
         """
         Get all orders.
         """
-        orders = order_service.get_all_orders()
+        orders = order_service.get_all_orders(current_user)
         return success_response(
             message=ORDERS_FETCHED,
             data=orders,
